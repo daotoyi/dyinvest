@@ -26,4 +26,5 @@ fi
   --project "$MINI_PROGRAM_DIR" \
   --version "$VERSION" \
   --desc "$DESCRIPTION" \
+  --info-output "$ROOT_DIR/.artifacts/wechat-upload-${VERSION}-info.json" \
   --lang zh

@@ -28,6 +28,10 @@ VITE_WECHAT_CLOUD_ENV=zhenhesheng-d6gkez7p221305432
 
 构建小程序时，该环境 ID 会注入客户端。
 
+该环境是共享 CloudBase 环境。道元数链 AppID 已通过最小云函数调用验证，
+云函数权限和 `wx.cloud.init` 环境路由可用。环境的静态托管内容属于其他 Web
+项目，不应作为道元数链或 `dyinvest.cn` 的访问地址。
+
 ## 部署云函数
 
 ```bash

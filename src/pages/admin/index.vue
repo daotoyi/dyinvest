@@ -465,7 +465,7 @@ function restoreContentDefaults() {
               </view>
               <view class="admin-system__row">
                 <text>应用版本</text>
-                <text class="mono">v0.3.1</text>
+                <text class="mono">v0.3.2</text>
               </view>
               <view class="admin-system__row">
                 <text>小程序 AppID</text>

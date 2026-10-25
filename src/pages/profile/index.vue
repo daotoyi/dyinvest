@@ -350,7 +350,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>期权工坊 · THETA LAB</text>
           <view class="profile-footer__dot" />
-          <text>v0.3.1</text>
+          <text>v0.3.2</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>

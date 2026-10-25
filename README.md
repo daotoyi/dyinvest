@@ -57,7 +57,7 @@ npm run build:app
 当前小程序 AppID 已配置为 `wx6aef5e7ef168ecdd`。开发者工具登录后可以执行：
 
 ```bash
-MP_VERSION=0.3.1 MP_DESC="期权工坊0.3.1" npm run deploy:mp
+MP_VERSION=0.3.2 MP_DESC="期权工坊0.3.2" npm run deploy:mp
 ```
 
 该命令会重新构建小程序、校验 AppID 并上传开发版。上传后需要在微信公众平台设置体验版或提交审核。微信开发者工具未登录时需要先扫码登录。
@@ -66,6 +66,7 @@ MP_VERSION=0.3.1 MP_DESC="期权工坊0.3.1" npm run deploy:mp
 微信手机号快捷登录配置见 [docs/phone-login.md](docs/phone-login.md)。
 管理后台说明见 [docs/admin-console.md](docs/admin-console.md)。
 H5 网站部署与回滚说明见 [docs/web-deployment.md](docs/web-deployment.md)。
+云环境与小程序的固定同步发布流程见 [docs/deployment-sync.md](docs/deployment-sync.md)。
 
 App 构建产物需使用 HBuilderX 完成原生打包、证书签名和上架配置。正式 App 不应只使用纯 WebView 壳，推送、生物识别、安全存储等能力应通过原生插件接入。
 

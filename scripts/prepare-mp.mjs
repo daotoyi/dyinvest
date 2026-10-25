@@ -8,6 +8,7 @@ const outputDir = join(rootDir, "dist", "build", "mp-weixin");
 const cloudSource = join(rootDir, "cloudfunctions");
 const cloudTarget = join(outputDir, "cloudfunctions");
 const projectConfigPath = join(outputDir, "project.config.json");
+const projectPrivateConfigPath = join(outputDir, "project.private.config.json");
 const appConfigPath = join(outputDir, "app.json");
 
 if (!existsSync(outputDir)) {
@@ -25,6 +26,15 @@ if (existsSync(cloudSource)) {
 const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf8"));
 projectConfig.cloudfunctionRoot = "cloudfunctions/";
 writeFileSync(projectConfigPath, `${JSON.stringify(projectConfig, null, 2)}\n`);
+
+const projectPrivateConfig = JSON.parse(
+  readFileSync(projectPrivateConfigPath, "utf8"),
+);
+projectPrivateConfig.cloudProject = true;
+writeFileSync(
+  projectPrivateConfigPath,
+  `${JSON.stringify(projectPrivateConfig, null, 2)}\n`,
+);
 
 const appConfig = JSON.parse(readFileSync(appConfigPath, "utf8"));
 if (appConfig.lazyCodeLoading !== "requiredComponents") {

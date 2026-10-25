@@ -1,6 +1,6 @@
 {
   "name": "options-lab",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "期权学习、策略研究与模拟交易跨端应用",
   "scripts": {
@@ -14,7 +14,8 @@
     "test:unit": "vitest run --config vitest.config.ts",
     "test:e2e": "playwright test",
     "deploy:mp": "./scripts/deploy-mp.sh",
-    "deploy:cloud": "npm run build:mp-weixin && node scripts/deploy-cloud.mjs"
+    "deploy:cloud": "npm run build:mp-weixin && node scripts/deploy-cloud.mjs",
+    "deploy:all": "./scripts/deploy-all.sh"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030320261023001",
