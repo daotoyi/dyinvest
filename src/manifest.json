@@ -1,0 +1,52 @@
+{
+  "name": "期权工坊",
+  "appid": "__UNI__OPTIONSLAB",
+  "description": "期权学习、策略研究与模拟交易",
+  "uniStatistics": {
+    "enable": false
+  },
+  "versionName": "0.2.0",
+  "versionCode": "200",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0
+    },
+    "modules": {},
+    "distribute": {
+      "android": {
+        "permissions": []
+      },
+      "ios": {},
+      "sdkConfigs": {}
+    }
+  },
+  "quickapp": {},
+  "mp-weixin": {
+    "appid": "wx6aef5e7ef168ecdd",
+    "libVersion": "3.16.1",
+    "lazyCodeLoading": "requiredComponents",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "postcss": true,
+      "minified": true,
+      "minifyWXSS": true,
+      "minifyWXML": true,
+      "bigPackageSizeSupport": true
+    },
+    "usingComponents": true
+  },
+  "h5": {
+    "title": "期权工坊",
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

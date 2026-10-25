@@ -1,0 +1,81 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "期权工坊"
+      }
+    },
+    {
+      "path": "pages/learn/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "学习"
+      }
+    },
+    {
+      "path": "pages/strategy/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "策略实验室"
+      }
+    },
+    {
+      "path": "pages/practice/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "模拟实战"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/lesson/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "课程详情"
+      }
+    },
+    {
+      "path": "pages/order/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "模拟下单"
+      }
+    },
+    {
+      "path": "pages/live/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "实盘接入"
+      }
+    },
+    {
+      "path": "pages/auth/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "登录与注册"
+      }
+    },
+    {
+      "path": "pages/settings/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "账户与偏好"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#f5f7f6",
+    "backgroundTextStyle": "dark",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "期权工坊"
+  }
+}

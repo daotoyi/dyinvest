@@ -1,0 +1,39 @@
+{
+  "name": "options-lab",
+  "version": "0.2.0",
+  "private": true,
+  "description": "期权学习、策略研究与模拟交易跨端应用",
+  "scripts": {
+    "dev:h5": "uni -p h5",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "dev:app": "uni -p app",
+    "build:h5": "uni build -p h5",
+    "build:mp-weixin": "uni build -p mp-weixin",
+    "build:app": "uni build -p app",
+    "typecheck": "vue-tsc --noEmit",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:e2e": "playwright test",
+    "deploy:mp": "./scripts/deploy-mp.sh"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-5030320261023001",
+    "@dcloudio/uni-app-plus": "3.0.0-5030320261023001",
+    "@dcloudio/uni-components": "3.0.0-5030320261023001",
+    "@dcloudio/uni-h5": "3.0.0-5030320261023001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-5030320261023001",
+    "@noble/hashes": "^1.8.0",
+    "vue": "3.4.21",
+    "vue-i18n": "9.1.9"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.31",
+    "@dcloudio/vite-plugin-uni": "3.0.0-5030320261023001",
+    "@playwright/test": "1.58.0",
+    "@vue/tsconfig": "^0.5.1",
+    "sass": "^1.77.8",
+    "typescript": "^5.4.5",
+    "vite": "5.2.8",
+    "vitest": "1.6.1",
+    "vue-tsc": "^2.0.29"
+  }
+}
