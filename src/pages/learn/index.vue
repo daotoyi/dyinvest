@@ -5,26 +5,34 @@ import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import { lessons } from "../../data/lessons";
 import { useLearningProgress } from "../../composables/useLearningProgress";
+import { useContentSettings } from "../../composables/useContentSettings";
 
 const { completedCount, progress, isCompleted } = useLearningProgress();
+const { visibleLessons, isLessonEnabled } = useContentSettings();
 const filter = ref<"全部" | "基础" | "进阶">("全部");
 const filters: Array<"全部" | "基础" | "进阶"> = ["全部", "基础", "进阶"];
 
 const filteredLessons = computed(() =>
   filter.value === "全部"
-    ? lessons
-    : lessons.filter((lesson) => lesson.level === filter.value),
+    ? visibleLessons.value
+    : visibleLessons.value.filter((lesson) => lesson.level === filter.value),
 );
 const nextLesson = computed(
-  () => lessons.find((lesson) => !isCompleted(lesson.id)) ?? lessons[0],
+  () =>
+    visibleLessons.value.find((lesson) => !isCompleted(lesson.id)) ??
+    visibleLessons.value[0],
 );
 const foundationProgress = computed(() => {
-  const group = lessons.filter((lesson) => lesson.level === "基础");
-  return group.filter((lesson) => isCompleted(lesson.id)).length / group.length;
+  const group = visibleLessons.value.filter((lesson) => lesson.level === "基础");
+  return group.length
+    ? group.filter((lesson) => isCompleted(lesson.id)).length / group.length
+    : 0;
 });
 const advancedProgress = computed(() => {
-  const group = lessons.filter((lesson) => lesson.level === "进阶");
-  return group.filter((lesson) => isCompleted(lesson.id)).length / group.length;
+  const group = visibleLessons.value.filter((lesson) => lesson.level === "进阶");
+  return group.length
+    ? group.filter((lesson) => isCompleted(lesson.id)).length / group.length
+    : 0;
 });
 
 function openLesson(id: string) {
@@ -44,7 +52,7 @@ function openLesson(id: string) {
           <template #action>
             <view class="learn-header-count">
               <text class="mono">{{ completedCount }}</text>
-              <text>/ {{ lessons.length }} 课</text>
+              <text>/ {{ visibleLessons.length }} 课</text>
             </view>
           </template>
         </PageHeader>
@@ -96,7 +104,7 @@ function openLesson(id: string) {
           <view class="section-heading lesson-toolbar__heading">
             <view class="section-heading__copy">
               <text class="section-heading__title">课程目录</text>
-              <text class="section-heading__meta">{{ filteredLessons.length }} 节 · 约 {{ lessons.reduce((sum, item) => sum + item.minutes, 0) }} 分钟</text>
+              <text class="section-heading__meta">{{ filteredLessons.length }} 节 · 约 {{ visibleLessons.reduce((sum, item) => sum + item.minutes, 0) }} 分钟</text>
             </view>
           </view>
           <view class="segmented">
@@ -167,7 +175,11 @@ function openLesson(id: string) {
               示例行情与收益均为演示数据，实际交易前请阅读交易所规则和券商风险揭示。
             </text>
           </view>
-          <button class="button-quiet" @tap="openLesson('margin-risk')">
+          <button
+            v-if="isLessonEnabled('margin-risk')"
+            class="button-quiet"
+            @tap="openLesson('margin-risk')"
+          >
             <text>查看风险课</text>
             <AppIcon name="chevronRight" :size="14" color="#946617" />
           </button>

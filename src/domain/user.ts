@@ -17,6 +17,8 @@ export interface LocalUserRecord {
   nickname: string;
   authMethod?: "local" | "wechat_phone";
   phone?: string;
+  role?: "user" | "admin";
+  status?: "active" | "disabled";
   salt: string;
   passwordHash: string;
   hashIterations: number;

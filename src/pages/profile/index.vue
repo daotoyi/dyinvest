@@ -3,11 +3,11 @@ import { computed } from "vue";
 import AppIcon from "../../components/AppIcon.vue";
 import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
-import { lessons } from "../../data/lessons";
 import { strategyTemplates } from "../../data/strategies";
 import { useLearningProgress } from "../../composables/useLearningProgress";
 import { usePaperAccount } from "../../composables/usePaperAccount";
 import { useAuth } from "../../composables/useAuth";
+import { useContentSettings } from "../../composables/useContentSettings";
 import { formatMoney, formatPercent } from "../../domain/format";
 import {
   EXPERIENCE_LABELS,
@@ -24,11 +24,13 @@ const {
 const {
   currentUser,
   isLoggedIn,
+  isAdmin,
   displayName,
   accountIdentifier,
   preferences,
   logout,
 } = useAuth();
+const { visibleLessons, visibleStrategies } = useContentSettings();
 
 const level = computed(() => {
   if (preferences.value) return RISK_LABELS[preferences.value.riskLevel];
@@ -42,6 +44,7 @@ const avatarLetter = computed(
 const defaultStrategyName = computed(() => {
   const id = preferences.value?.defaultStrategyId;
   return (
+    visibleStrategies.value.find((template) => template.id === id)?.name ??
     strategyTemplates.find((template) => template.id === id)?.name ??
     "牛市看涨价差"
   );
@@ -57,6 +60,10 @@ function openAuth(mode: "login" | "register" = "login") {
 
 function openSettings() {
   uni.navigateTo({ url: "/pages/settings/index" });
+}
+
+function openAdmin() {
+  uni.navigateTo({ url: "/pages/admin/index" });
 }
 
 function handleLogout() {
@@ -164,13 +171,25 @@ function showDisclosure() {
           </button>
         </view>
 
+        <button v-if="isAdmin" class="admin-entry" @tap="openAdmin">
+          <view class="admin-entry__icon">
+            <AppIcon name="chart" :size="21" color="#b9e5d8" />
+          </view>
+          <view class="admin-entry__copy">
+            <text class="admin-entry__title">运营管理后台</text>
+            <text class="admin-entry__desc">用户、课程、策略与首页公告管理</text>
+          </view>
+          <view class="admin-entry__badge">管理员</view>
+          <AppIcon name="arrowUpRight" :size="17" color="#b9e5d8" />
+        </button>
+
         <view class="profile-stats">
           <view class="profile-stat card">
             <view class="profile-stat__head">
               <view class="profile-stat__icon profile-stat__icon--teal">
                 <AppIcon name="graduation" :size="19" color="#0e6f5c" />
               </view>
-              <text class="profile-stat__meta">{{ completedCount }} / {{ lessons.length }}</text>
+              <text class="profile-stat__meta">{{ completedCount }} / {{ visibleLessons.length }}</text>
             </view>
             <text class="profile-stat__label">学习进度</text>
             <text class="profile-stat__value mono">{{ Math.round(progress * 100) }}%</text>
@@ -225,6 +244,21 @@ function showDisclosure() {
                 <text class="settings-row__desc">昵称、风险偏好、默认策略和数量</text>
               </view>
               <view class="settings-row__status">{{ RISK_LABELS[preferences?.riskLevel ?? "C3"] }}</view>
+              <AppIcon name="chevronRight" :size="15" color="#95a09c" />
+            </button>
+            <button
+              v-if="isAdmin"
+              class="settings-row"
+              @tap="openAdmin"
+            >
+              <view class="settings-row__icon">
+                <AppIcon name="chart" :size="18" color="#0e6f5c" />
+              </view>
+              <view class="settings-row__copy">
+                <text class="settings-row__title">运营管理后台</text>
+                <text class="settings-row__desc">本地用户与内容发布管理</text>
+              </view>
+              <view class="settings-row__status">管理员</view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
             <button
@@ -316,7 +350,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>期权工坊 · THETA LAB</text>
           <view class="profile-footer__dot" />
-          <text>v0.2.1</text>
+          <text>v0.3.0</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>
@@ -464,6 +498,58 @@ function showDisclosure() {
   padding: 0 10px;
   flex: 0 0 auto;
   font-size: 9px;
+}
+
+.admin-entry {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 11px;
+  margin-top: 12px;
+  padding: 13px 15px;
+  border-radius: 8px;
+  background: #17211e;
+  color: #ffffff;
+  text-align: left;
+}
+
+.admin-entry__icon {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(185, 229, 216, 0.14);
+  border-radius: 6px;
+  background: rgba(185, 229, 216, 0.06);
+}
+
+.admin-entry__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.admin-entry__title {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-entry__desc {
+  margin-top: 2px;
+  color: #8c9b96;
+  font-size: 8px;
+}
+
+.admin-entry__badge {
+  padding: 3px 6px;
+  border: 1px solid rgba(185, 229, 216, 0.16);
+  border-radius: 4px;
+  color: #b9e5d8;
+  font-size: 7px;
+  font-weight: 650;
 }
 
 .profile-stats {

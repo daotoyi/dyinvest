@@ -157,6 +157,30 @@ function constantTimeEqual(left: string, right: string) {
 }
 
 const initialUsers = readUsers();
+let usersChanged = false;
+for (const user of initialUsers) {
+  if (!user.role) {
+    user.role = "user";
+    usersChanged = true;
+  }
+  if (!user.status) {
+    user.status = "active";
+    usersChanged = true;
+  }
+}
+if (
+  initialUsers.length > 0 &&
+  !initialUsers.some((user) => user.role === "admin" && user.status !== "disabled")
+) {
+  const firstActive = initialUsers.find((user) => user.status !== "disabled");
+  if (firstActive) {
+    firstActive.role = "admin";
+    usersChanged = true;
+  }
+}
+if (usersChanged) {
+  writeStorage(USERS_KEY, JSON.parse(JSON.stringify(initialUsers)));
+}
 const initialUserId = readSessionUserId(initialUsers);
 const state = reactive<AuthState>({
   users: initialUsers,
@@ -168,6 +192,11 @@ const currentUser = computed(
   () => state.users.find((user) => user.id === state.currentUserId) ?? null,
 );
 const isLoggedIn = computed(() => Boolean(currentUser.value));
+const isAdmin = computed(
+  () =>
+    currentUser.value?.role === "admin" &&
+    currentUser.value?.status !== "disabled",
+);
 const displayName = computed(
   () => state.preferences?.nickname ?? currentUser.value?.nickname ?? "访客",
 );
@@ -227,6 +256,10 @@ function register(input: {
     usernameNormalized: normalized,
     nickname,
     authMethod: "local",
+    role: state.users.some((item) => item.role === "admin")
+      ? "user"
+      : "admin",
+    status: "active",
     salt,
     passwordHash: derivePasswordHash(input.password, salt, HASH_ITERATIONS),
     hashIterations: HASH_ITERATIONS,
@@ -247,6 +280,9 @@ function login(username: string, password: string) {
     (item) => item.usernameNormalized === normalized,
   );
   if (!user) throw new Error("用户名或密码不正确");
+  if (user.status === "disabled") {
+    throw new Error("该账户已被管理员禁用");
+  }
   if (user.authMethod === "wechat_phone") {
     throw new Error("该账户请使用手机号快捷登录");
   }
@@ -275,6 +311,9 @@ function loginWithVerifiedPhone(phone: string) {
   }
 
   let user = state.users.find((item) => item.phone === normalizedPhone);
+  if (user?.status === "disabled") {
+    throw new Error("该账户已被管理员禁用");
+  }
   if (!user) {
     const suffix = normalizedPhone.slice(-4);
     let username = `wx_${suffix}`;
@@ -294,6 +333,10 @@ function loginWithVerifiedPhone(phone: string) {
       nickname: `微信用户${suffix}`,
       authMethod: "wechat_phone",
       phone: normalizedPhone,
+      role: state.users.some((item) => item.role === "admin")
+        ? "user"
+        : "admin",
+      status: "active",
       salt: "",
       passwordHash: "",
       hashIterations: 0,
@@ -336,11 +379,43 @@ function updatePreferences(patch: Partial<UserPreferences>) {
   return next;
 }
 
+function requireAdmin() {
+  if (!isAdmin.value) throw new Error("当前账户没有管理权限");
+}
+
+function setUserRole(userId: string, role: "user" | "admin") {
+  requireAdmin();
+  if (userId === state.currentUserId && role !== "admin") {
+    throw new Error("不能取消自己的管理员权限");
+  }
+  const user = state.users.find((item) => item.id === userId);
+  if (!user) throw new Error("用户不存在");
+  user.role = role;
+  persistUsers();
+}
+
+function setUserStatus(userId: string, status: "active" | "disabled") {
+  requireAdmin();
+  if (userId === state.currentUserId && status === "disabled") {
+    throw new Error("不能禁用当前登录账户");
+  }
+  const user = state.users.find((item) => item.id === userId);
+  if (!user) throw new Error("用户不存在");
+  user.status = status;
+  persistUsers();
+}
+
+function getUserPreferences(userId: string) {
+  const user = state.users.find((item) => item.id === userId);
+  return user ? readPreferences(userId) ?? defaultPreferences(user.nickname) : null;
+}
+
 export function useAuth() {
   return {
     state,
     currentUser,
     isLoggedIn,
+    isAdmin,
     displayName,
     accountIdentifier,
     hasAccounts,
@@ -350,5 +425,8 @@ export function useAuth() {
     loginWithVerifiedPhone,
     logout,
     updatePreferences,
+    setUserRole,
+    setUserStatus,
+    getUserPreferences,
   };
 }

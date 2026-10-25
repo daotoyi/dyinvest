@@ -73,7 +73,7 @@ function go(path: string) {
         <view class="rail-foot">
           <text>演示行情</text>
           <view class="rail-foot__dot" />
-          <text>v0.2.1</text>
+          <text>v0.3.0</text>
         </view>
       </view>
     </view>

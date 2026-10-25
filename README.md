@@ -16,6 +16,7 @@
 - 本地用户注册、登录、退出和用户级偏好配置。
 - 微信小程序手机号快捷登录按钮和云函数验证链路。
 - 偏好配置支持昵称、经验水平、风险偏好、默认策略和默认下单数量。
+- 本地运营管理后台，支持用户角色、账户状态、课程上下架、策略启停和首页公告。
 - 实盘接入状态、检查清单与正式接入口径说明。
 - H5、微信小程序和 App 构建入口。
 
@@ -56,13 +57,14 @@ npm run build:app
 当前小程序 AppID 已配置为 `wx6aef5e7ef168ecdd`。开发者工具登录后可以执行：
 
 ```bash
-MP_VERSION=0.2.1 MP_DESC="期权工坊0.2.1" npm run deploy:mp
+MP_VERSION=0.3.0 MP_DESC="期权工坊0.3.0" npm run deploy:mp
 ```
 
 该命令会重新构建小程序、校验 AppID 并上传开发版。上传后需要在微信公众平台设置体验版或提交审核。微信开发者工具未登录时需要先扫码登录。
 
 部署记录和公开发布步骤见 [docs/mp-deployment.md](docs/mp-deployment.md)。
 微信手机号快捷登录配置见 [docs/phone-login.md](docs/phone-login.md)。
+管理后台说明见 [docs/admin-console.md](docs/admin-console.md)。
 
 App 构建产物需使用 HBuilderX 完成原生打包、证书签名和上架配置。正式 App 不应只使用纯 WebView 壳，推送、生物识别、安全存储等能力应通过原生插件接入。
 
@@ -99,6 +101,7 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 npm run test:e2e
 - 当前注册登录是本机账户体系，不属于云端身份认证，不支持跨设备同步。
 - 本地密码使用随机盐和 PBKDF2 哈希保存，但清除应用数据后账户无法恢复。
 - 微信手机号快捷登录需要云开发环境、`phoneLogin` 云函数和微信隐私授权配置。
+- 当前管理后台直接操作本机数据，正式环境需要服务端 RBAC 和审计日志。
 
 ## 下一阶段建议
 

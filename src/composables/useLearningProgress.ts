@@ -1,5 +1,5 @@
 import { computed, reactive } from "vue";
-import { lessons } from "../data/lessons";
+import { useContentSettings } from "./useContentSettings";
 
 const STORAGE_KEY = "options-lab-learning-v1";
 
@@ -15,6 +15,7 @@ function loadCompleted() {
 const state = reactive({
   completedIds: loadCompleted(),
 });
+const { visibleLessons } = useContentSettings();
 
 function persist() {
   uni.setStorageSync(STORAGE_KEY, [...state.completedIds]);
@@ -23,7 +24,9 @@ function persist() {
 export function useLearningProgress() {
   const completedCount = computed(() => state.completedIds.length);
   const progress = computed(() =>
-    Math.min(completedCount.value / lessons.length, 1),
+    visibleLessons.value.length > 0
+      ? Math.min(completedCount.value / visibleLessons.value.length, 1)
+      : 0,
   );
 
   function isCompleted(id: string) {

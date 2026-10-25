@@ -47,4 +47,28 @@ describe("verified phone login", () => {
       "微信返回的手机号格式不正确",
     );
   });
+
+  it("bootstraps the first account as admin and enforces account status", async () => {
+    const { useAuth } = await import("./useAuth");
+    const auth = useAuth();
+
+    const first = auth.loginWithVerifiedPhone("13800138000");
+    const second = auth.loginWithVerifiedPhone("13900139000");
+    expect(first.role).toBe("admin");
+    expect(second.role).toBe("user");
+    expect(auth.isAdmin.value).toBe(false);
+
+    auth.loginWithVerifiedPhone("13800138000");
+    expect(auth.isAdmin.value).toBe(true);
+    auth.setUserRole(second.id, "admin");
+    expect(second.role).toBe("admin");
+    auth.setUserStatus(second.id, "disabled");
+    expect(second.status).toBe("disabled");
+    expect(() => auth.loginWithVerifiedPhone("13900139000")).toThrow(
+      "该账户已被管理员禁用",
+    );
+    expect(() => auth.setUserRole(first.id, "user")).toThrow(
+      "不能取消自己的管理员权限",
+    );
+  });
 });

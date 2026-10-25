@@ -9,13 +9,13 @@ import {
   overviewQuotes,
   underlying,
 } from "../../data/options";
-import { lessons } from "../../data/lessons";
 import {
   buildStrategyLegs,
   calculateStrategyMetrics,
 } from "../../data/strategies";
 import { useLearningProgress } from "../../composables/useLearningProgress";
 import { usePaperAccount } from "../../composables/usePaperAccount";
+import { useContentSettings } from "../../composables/useContentSettings";
 import {
   formatMoney,
   formatPercent,
@@ -23,6 +23,11 @@ import {
 } from "../../domain/format";
 
 const { completedCount, isCompleted } = useLearningProgress();
+const {
+  visibleLessons,
+  visibleStrategies,
+  state: contentState,
+} = useContentSettings();
 const {
   state,
   totalEquity,
@@ -33,7 +38,14 @@ const {
 } = usePaperAccount();
 
 const nextLesson = computed(
-  () => lessons.find((lesson) => !isCompleted(lesson.id)) ?? lessons[lessons.length - 1],
+  () =>
+    visibleLessons.value.find((lesson) => !isCompleted(lesson.id)) ??
+    visibleLessons.value[0],
+);
+const learningPercent = computed(() =>
+  visibleLessons.value.length
+    ? Math.min(completedCount.value / visibleLessons.value.length, 1)
+    : 0,
 );
 const dayChange = computed(() => {
   const history = state.equityHistory;
@@ -41,8 +53,14 @@ const dayChange = computed(() => {
   const previous = history[history.length - 2] ?? latest;
   return latest - previous;
 });
+const previewStrategy = computed(
+  () =>
+    visibleStrategies.value.find(
+      (template) => template.id === "bull-call-spread",
+    ) ?? visibleStrategies.value[0],
+);
 const bullSpread = computed(() => {
-  const legs = buildStrategyLegs("bull-call-spread");
+  const legs = buildStrategyLegs(previewStrategy.value?.id ?? "bull-call-spread");
   return {
     legs,
     metrics: calculateStrategyMetrics(legs),
@@ -78,6 +96,20 @@ function goLesson() {
           <button class="icon-button mobile-brand__bell" @tap="go('/pages/profile/index')">
             <AppIcon name="bell" :size="18" />
           </button>
+        </view>
+
+        <view
+          v-if="contentState.announcement.enabled"
+          class="home-announcement"
+        >
+          <view class="home-announcement__icon">
+            <AppIcon name="bell" :size="17" color="#946617" />
+          </view>
+          <view class="home-announcement__copy">
+            <text class="home-announcement__title">{{ contentState.announcement.title }}</text>
+            <text class="home-announcement__text">{{ contentState.announcement.text }}</text>
+          </view>
+          <text class="home-announcement__meta">运营公告</text>
         </view>
 
         <view class="home-intro">
@@ -163,7 +195,7 @@ function goLesson() {
               <view>
                 <text class="eyebrow">继续学习</text>
                 <text class="continue-panel__step">
-                  {{ completedCount }} / {{ lessons.length }} 课
+                  {{ completedCount }} / {{ visibleLessons.length }} 课
                 </text>
               </view>
             </view>
@@ -178,10 +210,10 @@ function goLesson() {
               <view class="continue-panel__progress-track">
                 <view
                   class="continue-panel__progress-value"
-                  :style="{ width: `${(completedCount / lessons.length) * 100}%` }"
+                  :style="{ width: `${learningPercent * 100}%` }"
                 />
               </view>
-              <text>{{ Math.round((completedCount / lessons.length) * 100) }}%</text>
+              <text>{{ Math.round(learningPercent * 100) }}%</text>
             </view>
 
             <button class="button-primary continue-panel__button" @tap="goLesson">
@@ -200,7 +232,7 @@ function goLesson() {
             <view class="section-heading">
               <view class="section-heading__copy">
                 <text class="section-heading__title">策略实验室</text>
-                <text class="section-heading__meta">当前示例 · 牛市看涨价差</text>
+                <text class="section-heading__meta">当前示例 · {{ previewStrategy?.name }}</text>
               </view>
               <button class="button-quiet" @tap="go('/pages/strategy/index')">
                 <text>打开</text>
@@ -342,6 +374,54 @@ function goLesson() {
 
 .mobile-brand {
   display: none;
+}
+
+.home-announcement {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #ead8b5;
+  border-radius: 8px;
+  background: #fdf9f1;
+}
+
+.home-announcement__icon {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--amber-wash);
+}
+
+.home-announcement__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.home-announcement__title {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.home-announcement__text {
+  margin-top: 2px;
+  color: #806b42;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.home-announcement__meta {
+  color: #946617;
+  font-size: 8px;
+  white-space: nowrap;
 }
 
 .home-intro {

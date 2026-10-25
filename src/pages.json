@@ -69,6 +69,13 @@
         "navigationStyle": "custom",
         "navigationBarTitleText": "账户与偏好"
       }
+    },
+    {
+      "path": "pages/admin/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "运营管理后台"
+      }
     }
   ],
   "globalStyle": {

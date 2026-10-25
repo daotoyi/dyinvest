@@ -123,6 +123,70 @@ test.describe("application smoke flow", () => {
       ),
     ).toBeVisible();
   });
+
+  test("admin can manage users, content and announcement", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-chromium");
+    await page.goto("/#/pages/auth/index");
+    const inputs = page.locator(".auth-input input");
+    await inputs.nth(0).fill("管理测试");
+    await inputs.nth(1).fill("adminuser01");
+    await inputs.nth(2).fill("password123");
+    await inputs.nth(3).fill("password123");
+    await page.locator(".auth-agreement").click();
+    await page.getByText("创建账户", { exact: true }).click();
+    await page.waitForURL(/pages\/profile\/index/, { timeout: 6000 });
+    await expect(page.locator(".admin-entry")).toBeVisible();
+
+    await page.locator(".admin-entry").click();
+    await page.waitForURL(/pages\/admin\/index/);
+    await expect(page.locator(".admin-header__title")).toHaveText("数据概览");
+
+    await page.locator(".admin-nav__item").filter({ hasText: "用户管理" }).click();
+    await expect(page.locator(".admin-table__row")).toHaveCount(1);
+    await expect(page.locator(".admin-table__row").first()).toContainText("管理员");
+
+    await page.locator(".admin-nav__item").filter({ hasText: "内容发布" }).click();
+    const lessonRow = page
+      .locator(".admin-content-row")
+      .filter({ hasText: "Delta 与 Gamma：方向与加速度" });
+    await lessonRow.locator(".admin-switch").click();
+    await expect(lessonRow.locator(".admin-content-row__status")).toHaveText("草稿");
+    const strategyRow = page
+      .locator(".admin-content-row")
+      .filter({ hasText: "铁鹰式" });
+    await strategyRow.locator(".admin-switch").click();
+    await expect(strategyRow.locator(".admin-content-row__status")).toHaveText("已停用");
+
+    await page.goto("/#/pages/learn/index");
+    await expect(
+      page.getByText("Delta 与 Gamma：方向与加速度", { exact: true }),
+    ).toHaveCount(0);
+    await page.goto("/#/pages/strategy/index");
+    await expect(
+      page.locator(".template-pill").filter({ hasText: "铁鹰" }),
+    ).toHaveCount(0);
+
+    await page.goto("/#/pages/admin/index");
+    await page
+      .locator(".admin-nav__item")
+      .filter({ hasText: "运营公告" })
+      .click();
+    await page.locator(".admin-announcement-layout .admin-switch").click();
+    await page.locator(".admin-form__input input").fill("管理台公告已开启");
+    await page
+      .locator(".admin-form__textarea textarea")
+      .fill("这条公告由运营管理后台发布。");
+    await page.getByText("保存运营公告", { exact: true }).click();
+    await expect(page.getByText("公告已保存", { exact: true })).toBeVisible();
+
+    await page.goto("/#/pages/home/index");
+    await expect(page.getByText("管理台公告已开启", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("这条公告由运营管理后台发布。", { exact: true }),
+    ).toBeVisible();
+  });
 });
 
 test.describe("mobile layout", () => {
@@ -169,6 +233,7 @@ test.describe("mobile layout", () => {
       "/#/pages/profile/index",
       "/#/pages/auth/index",
       "/#/pages/settings/index",
+      "/#/pages/admin/index",
     ];
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));

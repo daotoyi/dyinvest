@@ -3,8 +3,8 @@ import { computed, ref } from "vue";
 import AppIcon from "../../components/AppIcon.vue";
 import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
-import { strategyTemplates } from "../../data/strategies";
 import { useAuth } from "../../composables/useAuth";
+import { useContentSettings } from "../../composables/useContentSettings";
 import {
   EXPERIENCE_LABELS,
   RISK_LABELS,
@@ -18,13 +18,19 @@ const {
   preferences,
   updatePreferences,
 } = useAuth();
+const { visibleStrategies } = useContentSettings();
+const preferredStrategyId = preferences.value?.defaultStrategyId;
+const initialStrategyId = visibleStrategies.value.some(
+  (template) => template.id === preferredStrategyId,
+)
+  ? preferredStrategyId
+  : visibleStrategies.value[0]?.id ?? "bull-call-spread";
 
 const draft = ref({
   nickname: preferences.value?.nickname ?? "",
   experience: preferences.value?.experience ?? "beginner",
   riskLevel: preferences.value?.riskLevel ?? "C3",
-  defaultStrategyId:
-    preferences.value?.defaultStrategyId ?? "bull-call-spread",
+  defaultStrategyId: initialStrategyId,
   defaultOrderQuantity: preferences.value?.defaultOrderQuantity ?? 1,
 });
 const errorMessage = ref("");
@@ -36,12 +42,14 @@ const experienceOptions: ExperienceLevel[] = [
 ];
 const riskOptions: RiskLevel[] = ["C2", "C3", "C4"];
 const strategyIndex = computed(() => {
-  const index = strategyTemplates.findIndex(
+  const index = visibleStrategies.value.findIndex(
     (template) => template.id === draft.value.defaultStrategyId,
   );
-  return index >= 0 ? index : 1;
+  return index >= 0 ? index : 0;
 });
-const selectedStrategy = computed(() => strategyTemplates[strategyIndex.value]);
+const selectedStrategy = computed(
+  () => visibleStrategies.value[strategyIndex.value],
+);
 const lastSavedLabel = computed(() => {
   const value = preferences.value?.updatedAt;
   if (!value) return "尚未保存";
@@ -53,7 +61,7 @@ function openAuth() {
 }
 
 function changeStrategy(event: { detail: { value: number | string } }) {
-  const strategy = strategyTemplates[Number(event.detail.value)];
+  const strategy = visibleStrategies.value[Number(event.detail.value)];
   if (strategy) draft.value.defaultStrategyId = strategy.id;
 }
 
@@ -210,7 +218,7 @@ function save() {
               </view>
 
               <picker
-                :range="strategyTemplates.map((template) => template.name)"
+                :range="visibleStrategies.map((template) => template.name)"
                 :value="strategyIndex"
                 @change="changeStrategy"
               >

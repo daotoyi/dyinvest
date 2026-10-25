@@ -18,6 +18,7 @@ import {
   strategyTemplates,
 } from "../../data/strategies";
 import { useAuth } from "../../composables/useAuth";
+import { useContentSettings } from "../../composables/useContentSettings";
 import type { StrategyLeg } from "../../domain/types";
 import {
   formatMoney,
@@ -28,12 +29,17 @@ import {
 } from "../../domain/format";
 
 const { preferences } = useAuth();
+const { visibleStrategies } = useContentSettings();
 const configuredStrategy = preferences.value?.defaultStrategyId;
+const defaultVisibleStrategy =
+  visibleStrategies.value.find(
+    (template) => template.id === "bull-call-spread",
+  )?.id ?? visibleStrategies.value[0]?.id ?? "bull-call-spread";
 const initialStrategyId =
   configuredStrategy &&
-  strategyTemplates.some((template) => template.id === configuredStrategy)
+  visibleStrategies.value.some((template) => template.id === configuredStrategy)
     ? configuredStrategy
-    : "bull-call-spread";
+    : defaultVisibleStrategy;
 const selectedTemplateId = ref(initialStrategyId);
 const legs = ref<StrategyLeg[]>(buildStrategyLegs(selectedTemplateId.value));
 const activeTab = ref<"chart" | "scenario">("chart");
@@ -43,8 +49,11 @@ const strikes = optionChain.map((row) => row.strike);
 
 const selectedTemplate = computed(
   () =>
-    strategyTemplates.find((item) => item.id === selectedTemplateId.value) ??
-    strategyTemplates[1],
+    visibleStrategies.value.find(
+      (item) => item.id === selectedTemplateId.value,
+    ) ??
+    visibleStrategies.value[0] ??
+    strategyTemplates[0],
 );
 const metrics = computed(() => calculateStrategyMetrics(legs.value));
 const scenarioRows = computed(() =>
@@ -121,7 +130,7 @@ function goSimulate() {
           <scroll-view class="template-scroll" scroll-x :show-scrollbar="false">
             <view class="template-list">
               <button
-                v-for="template in strategyTemplates"
+              v-for="template in visibleStrategies"
                 :key="template.id"
                 class="template-pill"
                 :class="{ 'template-pill--active': selectedTemplateId === template.id }"
