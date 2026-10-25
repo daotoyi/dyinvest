@@ -54,6 +54,10 @@ test.describe("application smoke flow", () => {
   }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-chromium");
     await page.goto("/#/pages/auth/index");
+    await page
+      .locator(".segmented__item")
+      .filter({ hasText: "注册" })
+      .click();
     await expect(page.locator(".auth-form-title")).toHaveText("创建本地账户");
 
     const registerInputs = page.locator(".auth-input input");
@@ -128,14 +132,13 @@ test.describe("application smoke flow", () => {
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-chromium");
+    const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+    test.skip(!adminPassword, "requires DEFAULT_ADMIN_PASSWORD");
     await page.goto("/#/pages/auth/index");
     const inputs = page.locator(".auth-input input");
-    await inputs.nth(0).fill("管理测试");
-    await inputs.nth(1).fill("adminuser01");
-    await inputs.nth(2).fill("password123");
-    await inputs.nth(3).fill("password123");
-    await page.locator(".auth-agreement").click();
-    await page.getByText("创建账户", { exact: true }).click();
+    await inputs.nth(0).fill("admin");
+    await inputs.nth(1).fill(adminPassword as string);
+    await page.getByText("登录账户", { exact: true }).click();
     await page.waitForURL(/pages\/profile\/index/, { timeout: 6000 });
     await expect(page.locator(".admin-entry")).toBeVisible();
 

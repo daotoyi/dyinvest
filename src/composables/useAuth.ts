@@ -10,6 +10,10 @@ import {
   type RiskLevel,
   type UserPreferences,
 } from "../domain/user";
+import {
+  createDefaultAdminRecord,
+  DEFAULT_ADMIN_USERNAME,
+} from "../config/defaultAdmin";
 
 const USERS_KEY = "options-lab-local-users-v1";
 const SESSION_KEY = "options-lab-local-session-v1";
@@ -168,11 +172,24 @@ for (const user of initialUsers) {
     usersChanged = true;
   }
 }
+const hasDefaultAdmin = initialUsers.some(
+  (user) => user.usernameNormalized === DEFAULT_ADMIN_USERNAME,
+);
+if (!hasDefaultAdmin) {
+  initialUsers.unshift(createDefaultAdminRecord());
+  usersChanged = true;
+}
 if (
   initialUsers.length > 0 &&
   !initialUsers.some((user) => user.role === "admin" && user.status !== "disabled")
 ) {
-  const firstActive = initialUsers.find((user) => user.status !== "disabled");
+  const defaultAdmin = initialUsers.find(
+    (user) =>
+      user.usernameNormalized === DEFAULT_ADMIN_USERNAME &&
+      user.status !== "disabled",
+  );
+  const firstActive =
+    defaultAdmin ?? initialUsers.find((user) => user.status !== "disabled");
   if (firstActive) {
     firstActive.role = "admin";
     usersChanged = true;

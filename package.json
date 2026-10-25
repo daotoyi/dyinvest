@@ -1,6 +1,6 @@
 {
   "name": "options-lab",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "期权学习、策略研究与模拟交易跨端应用",
   "scripts": {

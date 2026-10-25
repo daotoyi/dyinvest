@@ -1,7 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  DEFAULT_ADMIN_ID,
+  DEFAULT_ADMIN_PASSWORD_HASH,
+  DEFAULT_ADMIN_USERNAME,
+} from "../config/defaultAdmin";
 
 describe("verified phone login", () => {
   const storage = new Map<string, unknown>();
+  const defaultAdminPassword = (
+    globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process?.env?.DEFAULT_ADMIN_PASSWORD;
 
   beforeEach(() => {
     storage.clear();
@@ -26,6 +36,7 @@ describe("verified phone login", () => {
     expect(auth.isLoggedIn.value).toBe(true);
     expect(auth.accountIdentifier.value).toBe("138****8000");
     expect(auth.preferences.value?.nickname).toBe("微信用户8000");
+    expect(user.role).toBe("user");
   });
 
   it("reuses the same account for the same verified phone number", async () => {
@@ -36,7 +47,7 @@ describe("verified phone login", () => {
     const second = auth.loginWithVerifiedPhone("13800138000");
 
     expect(second.id).toBe(first.id);
-    expect(auth.state.users).toHaveLength(1);
+    expect(auth.state.users).toHaveLength(2);
   });
 
   it("rejects an invalid phone number from the verification layer", async () => {
@@ -48,27 +59,84 @@ describe("verified phone login", () => {
     );
   });
 
-  it("bootstraps the first account as admin and enforces account status", async () => {
+  it("seeds exactly one default admin without overriding persisted users", async () => {
     const { useAuth } = await import("./useAuth");
     const auth = useAuth();
+    const admin = auth.state.users.find(
+      (user) => user.usernameNormalized === DEFAULT_ADMIN_USERNAME,
+    );
 
-    const first = auth.loginWithVerifiedPhone("13800138000");
-    const second = auth.loginWithVerifiedPhone("13900139000");
-    expect(first.role).toBe("admin");
-    expect(second.role).toBe("user");
+    expect(admin).toMatchObject({
+      id: DEFAULT_ADMIN_ID,
+      role: "admin",
+      status: "active",
+      authMethod: "local",
+      passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
+    });
+    expect(auth.state.users).toHaveLength(1);
+
+    vi.resetModules();
+    const reloaded = (await import("./useAuth")).useAuth();
+    expect(
+      reloaded.state.users.filter(
+        (user) => user.usernameNormalized === DEFAULT_ADMIN_USERNAME,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("keeps phone accounts non-admin and blocks duplicate admin registration", async () => {
+    const { useAuth } = await import("./useAuth");
+    const auth = useAuth();
+    const user = auth.loginWithVerifiedPhone("13800138000");
+
+    expect(user.role).toBe("user");
     expect(auth.isAdmin.value).toBe(false);
+    expect(() => auth.setUserRole(user.id, "admin")).toThrow(
+      "当前账户没有管理权限",
+    );
+    expect(() =>
+      auth.register({
+        username: DEFAULT_ADMIN_USERNAME,
+        password: "not-in-source-control",
+        nickname: "重复管理员",
+      }),
+    ).toThrow("该用户名已存在");
+  });
 
-    auth.loginWithVerifiedPhone("13800138000");
-    expect(auth.isAdmin.value).toBe(true);
-    auth.setUserRole(second.id, "admin");
-    expect(second.role).toBe("admin");
-    auth.setUserStatus(second.id, "disabled");
-    expect(second.status).toBe("disabled");
+  it.runIf(Boolean(defaultAdminPassword))(
+    "authenticates the seeded admin and enables the management console",
+    async () => {
+      const { useAuth } = await import("./useAuth");
+      const auth = useAuth();
+      const admin = auth.login(
+        DEFAULT_ADMIN_USERNAME,
+        defaultAdminPassword as string,
+      );
+
+      expect(admin.id).toBe(DEFAULT_ADMIN_ID);
+      expect(admin.role).toBe("admin");
+      expect(auth.isAdmin.value).toBe(true);
+
+      const user = auth.loginWithVerifiedPhone("13900139000");
+      auth.login(DEFAULT_ADMIN_USERNAME, defaultAdminPassword as string);
+      auth.setUserRole(user.id, "admin");
+      expect(user.role).toBe("admin");
+      auth.setUserStatus(user.id, "disabled");
+      expect(user.status).toBe("disabled");
+      expect(() => auth.setUserRole(admin.id, "user")).toThrow(
+        "不能取消自己的管理员权限",
+      );
+    },
+  );
+
+  it("enforces account status for verified phone accounts", async () => {
+    const { useAuth } = await import("./useAuth");
+    const auth = useAuth();
+    const user = auth.loginWithVerifiedPhone("13900139000");
+    user.status = "disabled";
+
     expect(() => auth.loginWithVerifiedPhone("13900139000")).toThrow(
       "该账户已被管理员禁用",
-    );
-    expect(() => auth.setUserRole(first.id, "user")).toThrow(
-      "不能取消自己的管理员权限",
     );
   });
 });

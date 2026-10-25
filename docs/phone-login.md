@@ -23,7 +23,7 @@
 复制 `.env.example` 为 `.env.local`，填写云开发环境 ID：
 
 ```bash
-VITE_WECHAT_CLOUD_ENV=your-cloud-env-id
+VITE_WECHAT_CLOUD_ENV=zhenhesheng-d6gkez7p221305432
 ```
 
 构建小程序时，该环境 ID 会注入客户端。
@@ -31,7 +31,7 @@ VITE_WECHAT_CLOUD_ENV=your-cloud-env-id
 ## 部署云函数
 
 ```bash
-WECHAT_CLOUD_ENV=your-cloud-env-id npm run deploy:cloud
+WECHAT_CLOUD_ENV=zhenhesheng-d6gkez7p221305432 npm run deploy:cloud
 ```
 
 云函数目录：
@@ -57,6 +57,7 @@ phonenumber.getPhoneNumber
 ## 当前限制
 
 - H5 无法使用微信手机号授权，H5 端点击按钮会显示平台限制说明。
-- 当前项目尚未配置云环境 ID，也未部署云函数，因此正式获取手机号前必须完成上述配置。
+- 当前小程序云环境为 `zhenhesheng-d6gkez7p221305432`，构建和云函数部署必须使用同一环境。
+- 失败时登录页会显示云调用错误码或云函数返回的业务错误码，便于区分环境、函数和微信授权问题。
 - 手机号账户和偏好当前保存在本机，尚不支持跨设备同步。
 - 如需跨设备登录，需要增加服务端用户表、会话令牌和手机号绑定关系。

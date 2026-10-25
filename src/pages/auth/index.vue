@@ -47,6 +47,14 @@ interface PhoneNumberEvent {
 interface PhoneLoginCloudResult {
   ok?: boolean;
   phoneNumber?: string;
+  code?: string;
+  message?: string;
+}
+
+interface PhoneLoginFailure {
+  code?: string;
+  errCode?: string | number;
+  errMsg?: string;
   message?: string;
 }
 
@@ -122,7 +130,7 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
       detail?.errMsg?.includes("deny") || detail?.errMsg?.includes("cancel");
     errorMessage.value = cancelled
       ? "你已取消手机号授权"
-      : "微信未返回手机号授权码，请稍后重试";
+      : `微信未返回手机号授权码${detail?.errMsg ? `：${detail.errMsg}` : "，请稍后重试"}`;
     return;
   }
 
@@ -139,14 +147,15 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
   phoneLoading.value = true;
   try {
     if (!cloudInitialized) {
-      if (WECHAT_CLOUD_ENV) {
-        cloud.init({
-          env: WECHAT_CLOUD_ENV,
-          traceUser: true,
-        });
-      } else {
-        cloud.init({ traceUser: true });
+      if (!WECHAT_CLOUD_ENV) {
+        throw new Error(
+          "未配置微信云开发环境 ID，请使用 VITE_WECHAT_CLOUD_ENV 重新构建",
+        );
       }
+      cloud.init({
+        env: WECHAT_CLOUD_ENV,
+        traceUser: true,
+      });
       cloudInitialized = true;
     }
 
@@ -156,17 +165,23 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
     });
     const result = response.result as PhoneLoginCloudResult | undefined;
     if (!result?.ok || !result.phoneNumber) {
+      const code = result?.code ? `[${result.code}] ` : "";
       throw new Error(
-        result?.message || "手机号验证失败，请确认云函数和环境配置",
+        `${code}${result?.message || "手机号验证失败，请确认云函数和环境配置"}`,
       );
     }
     loginWithVerifiedPhone(result.phoneNumber);
     finishAuth("手机号登录成功");
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : "手机号快捷登录失败，请稍后重试";
+    const failure = error as PhoneLoginFailure;
+    const code = failure?.errCode ?? failure?.code;
+    const message =
+      failure?.errMsg ||
+      failure?.message ||
+      (error instanceof Error ? error.message : "");
+    errorMessage.value = `${message || "手机号快捷登录失败，请稍后重试"}${
+      code ? `（错误码 ${code}）` : ""
+    }`;
   } finally {
     phoneLoading.value = false;
   }

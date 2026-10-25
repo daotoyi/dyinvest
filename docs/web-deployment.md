@@ -10,6 +10,8 @@
 | 站点配置 | `/www/server/panel/vhost/nginx/dyinvest.cn.conf` |
 | 构建产物 | `dist/build/h5` |
 | 路由模式 | Hash 路由 |
+| 当前版本 | `0.3.1` |
+| 最近部署 | `2026-10-25 11:29` |
 
 服务器凭据不写入仓库。部署时通过 SSH 密钥或临时授权登录。
 

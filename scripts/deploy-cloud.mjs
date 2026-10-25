@@ -1,19 +1,32 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadEnv } from "vite";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(scriptDir, "..");
 const cli =
   process.env.WECHAT_DEVTOOLS_CLI ||
   "/Applications/wechatwebdevtools.app/Contents/MacOS/cli";
-const cloudEnv = (process.env.WECHAT_CLOUD_ENV || "").trim();
 const projectDir = join(rootDir, "dist", "build", "mp-weixin");
-const functionPath = join(rootDir, "cloudfunctions", "phoneLogin");
+const fileEnv = loadEnv("production", rootDir, "");
+const cloudEnv = (
+  process.env.WECHAT_CLOUD_ENV ||
+  fileEnv.VITE_WECHAT_CLOUD_ENV ||
+  ""
+).trim();
+const functionPath = join(projectDir, "cloudfunctions", "phoneLogin");
 
 if (!cloudEnv) {
   console.error(
-    "缺少 WECHAT_CLOUD_ENV。请先在微信开发者工具中创建云开发环境。",
+    "缺少微信云开发环境 ID。请在 .env.local 中配置 VITE_WECHAT_CLOUD_ENV。",
+  );
+  process.exit(1);
+}
+if (!existsSync(join(functionPath, "index.js"))) {
+  console.error(
+    `未找到构建后的 phoneLogin 云函数：${functionPath}。请先运行 npm run build:mp-weixin。`,
   );
   process.exit(1);
 }
