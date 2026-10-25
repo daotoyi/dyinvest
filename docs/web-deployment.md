@@ -20,14 +20,20 @@ npm ci
 npm run typecheck
 npm run test:unit
 npm run build:h5
-rsync -az dist/build/h5/ DEPLOY_USER@DEPLOY_HOST:/www/wwwroot/dyinvest.cn/
+rsync -az --chmod=D755,F644 \
+  dist/build/h5/ \
+  DEPLOY_USER@DEPLOY_HOST:/www/wwwroot/dyinvest.cn/
 ```
 
 发布后执行：
 
 ```bash
 ssh DEPLOY_USER@DEPLOY_HOST
-chmod -R u+rwX,go+rX /www/wwwroot/dyinvest.cn/assets
+chown -R www:www /www/wwwroot/dyinvest.cn/assets /www/wwwroot/dyinvest.cn/static
+find /www/wwwroot/dyinvest.cn/assets /www/wwwroot/dyinvest.cn/static \
+  -type d -exec chmod 755 {} +
+find /www/wwwroot/dyinvest.cn/assets /www/wwwroot/dyinvest.cn/static \
+  -type f -exec chmod 644 {} +
 nginx -t
 nginx -s reload
 ```
