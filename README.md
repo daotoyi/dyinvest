@@ -65,6 +65,7 @@ MP_VERSION=0.3.0 MP_DESC="期权工坊0.3.0" npm run deploy:mp
 部署记录和公开发布步骤见 [docs/mp-deployment.md](docs/mp-deployment.md)。
 微信手机号快捷登录配置见 [docs/phone-login.md](docs/phone-login.md)。
 管理后台说明见 [docs/admin-console.md](docs/admin-console.md)。
+H5 网站部署与回滚说明见 [docs/web-deployment.md](docs/web-deployment.md)。
 
 App 构建产物需使用 HBuilderX 完成原生打包、证书签名和上架配置。正式 App 不应只使用纯 WebView 壳，推送、生物识别、安全存储等能力应通过原生插件接入。
 
