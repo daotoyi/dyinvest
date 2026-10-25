@@ -25,6 +25,7 @@ const {
   currentUser,
   isLoggedIn,
   displayName,
+  accountIdentifier,
   preferences,
   logout,
 } = useAuth();
@@ -123,7 +124,7 @@ function showDisclosure() {
               <view class="profile-identity__meta">
                 <view class="profile-identity__dot" />
                 <text>{{ level }}</text>
-                <text>{{ isLoggedIn ? `@${currentUser?.username}` : "访客模式" }}</text>
+                <text>{{ isLoggedIn ? accountIdentifier : "访客模式" }}</text>
               </view>
             </view>
           </view>
@@ -315,7 +316,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>期权工坊 · THETA LAB</text>
           <view class="profile-footer__dot" />
-          <text>v0.2.0</text>
+          <text>v0.2.1</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>

@@ -35,6 +35,9 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      - name: Check cloud function syntax
+        run: node --check cloudfunctions/phoneLogin/index.js
+
       - name: Build H5
         run: npm run build:h5
 

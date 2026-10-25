@@ -4,6 +4,7 @@ import { sha256 } from "@noble/hashes/sha2";
 import { bytesToHex } from "@noble/hashes/utils";
 import {
   defaultPreferences,
+  maskPhone,
   type ExperienceLevel,
   type LocalUserRecord,
   type RiskLevel,
@@ -170,6 +171,14 @@ const isLoggedIn = computed(() => Boolean(currentUser.value));
 const displayName = computed(
   () => state.preferences?.nickname ?? currentUser.value?.nickname ?? "访客",
 );
+const accountIdentifier = computed(() => {
+  const user = currentUser.value;
+  if (!user) return "";
+  if (user.authMethod === "wechat_phone" && user.phone) {
+    return maskPhone(user.phone);
+  }
+  return `@${user.username}`;
+});
 const hasAccounts = computed(() => state.users.length > 0);
 
 function persistUsers() {
@@ -217,6 +226,7 @@ function register(input: {
     username,
     usernameNormalized: normalized,
     nickname,
+    authMethod: "local",
     salt,
     passwordHash: derivePasswordHash(input.password, salt, HASH_ITERATIONS),
     hashIterations: HASH_ITERATIONS,
@@ -237,6 +247,9 @@ function login(username: string, password: string) {
     (item) => item.usernameNormalized === normalized,
   );
   if (!user) throw new Error("用户名或密码不正确");
+  if (user.authMethod === "wechat_phone") {
+    throw new Error("该账户请使用手机号快捷登录");
+  }
 
   const candidate = derivePasswordHash(
     password,
@@ -245,6 +258,49 @@ function login(username: string, password: string) {
   );
   if (!constantTimeEqual(candidate, user.passwordHash)) {
     throw new Error("用户名或密码不正确");
+  }
+
+  state.currentUserId = user.id;
+  state.preferences =
+    readPreferences(user.id) ?? defaultPreferences(user.nickname);
+  persistSession();
+  persistPreferences(state.preferences);
+  return user;
+}
+
+function loginWithVerifiedPhone(phone: string) {
+  const normalizedPhone = phone.replace(/\D/g, "");
+  if (!/^1\d{10}$/.test(normalizedPhone)) {
+    throw new Error("微信返回的手机号格式不正确");
+  }
+
+  let user = state.users.find((item) => item.phone === normalizedPhone);
+  if (!user) {
+    const suffix = normalizedPhone.slice(-4);
+    let username = `wx_${suffix}`;
+    let sequence = 1;
+    while (
+      state.users.some(
+        (item) => item.usernameNormalized === username.toLowerCase(),
+      )
+    ) {
+      sequence += 1;
+      username = `wx_${suffix}_${sequence}`;
+    }
+    user = {
+      id: `u_${Date.now()}_${randomHex(4)}`,
+      username,
+      usernameNormalized: username.toLowerCase(),
+      nickname: `微信用户${suffix}`,
+      authMethod: "wechat_phone",
+      phone: normalizedPhone,
+      salt: "",
+      passwordHash: "",
+      hashIterations: 0,
+      createdAt: new Date().toISOString(),
+    };
+    state.users.push(user);
+    persistUsers();
   }
 
   state.currentUserId = user.id;
@@ -286,10 +342,12 @@ export function useAuth() {
     currentUser,
     isLoggedIn,
     displayName,
+    accountIdentifier,
     hasAccounts,
     preferences: computed(() => state.preferences),
     register,
     login,
+    loginWithVerifiedPhone,
     logout,
     updatePreferences,
   };

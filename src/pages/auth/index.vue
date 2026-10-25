@@ -4,6 +4,10 @@ import { onLoad } from "@dcloudio/uni-app";
 import AppIcon from "../../components/AppIcon.vue";
 import { useAuth } from "../../composables/useAuth";
 import {
+  WECHAT_CLOUD_ENV,
+  WECHAT_PHONE_LOGIN_FUNCTION,
+} from "../../config/runtime";
+import {
   EXPERIENCE_LABELS,
   RISK_LABELS,
 } from "../../domain/user";
@@ -11,9 +15,11 @@ import {
 const {
   currentUser,
   isLoggedIn,
+  accountIdentifier,
   preferences,
   hasAccounts,
   login,
+  loginWithVerifiedPhone,
   register,
   logout,
 } = useAuth();
@@ -28,6 +34,29 @@ const showConfirmPassword = ref(false);
 const agreed = ref(false);
 const errorMessage = ref("");
 const submitting = ref(false);
+const phoneLoading = ref(false);
+let cloudInitialized = false;
+
+interface PhoneNumberEvent {
+  detail?: {
+    code?: string;
+    errMsg?: string;
+  };
+}
+
+interface PhoneLoginCloudResult {
+  ok?: boolean;
+  phoneNumber?: string;
+  message?: string;
+}
+
+interface WechatCloudApi {
+  init(options: { env?: string; traceUser?: boolean }): void;
+  callFunction(options: {
+    name: string;
+    data: { code: string };
+  }): Promise<{ result?: unknown }>;
+}
 
 onLoad((query) => {
   if (query?.mode === "login" || query?.mode === "register") {
@@ -72,6 +101,75 @@ function finishAuth(message: string) {
     if (pages.length > 1) uni.navigateBack();
     else uni.reLaunch({ url: "/pages/profile/index" });
   }, 450);
+}
+
+function showPhoneUnavailable() {
+  uni.showModal({
+    title: "手机号快捷登录",
+    content:
+      "微信一键获取手机号仅在微信小程序内可用。H5 需要接入短信验证码服务和后端会话接口。",
+    showCancel: false,
+    confirmText: "我知道了",
+    confirmColor: "#0e6f5c",
+  });
+}
+
+async function handleGetPhoneNumber(event: PhoneNumberEvent) {
+  errorMessage.value = "";
+  const detail = event.detail;
+  if (!detail?.code) {
+    const cancelled =
+      detail?.errMsg?.includes("deny") || detail?.errMsg?.includes("cancel");
+    errorMessage.value = cancelled
+      ? "你已取消手机号授权"
+      : "微信未返回手机号授权码，请稍后重试";
+    return;
+  }
+
+  const cloud = (
+    globalThis as typeof globalThis & {
+      wx?: { cloud?: WechatCloudApi };
+    }
+  ).wx?.cloud;
+  if (!cloud) {
+    errorMessage.value = "当前环境不支持微信云开发手机号登录";
+    return;
+  }
+
+  phoneLoading.value = true;
+  try {
+    if (!cloudInitialized) {
+      if (WECHAT_CLOUD_ENV) {
+        cloud.init({
+          env: WECHAT_CLOUD_ENV,
+          traceUser: true,
+        });
+      } else {
+        cloud.init({ traceUser: true });
+      }
+      cloudInitialized = true;
+    }
+
+    const response = await cloud.callFunction({
+      name: WECHAT_PHONE_LOGIN_FUNCTION,
+      data: { code: detail.code },
+    });
+    const result = response.result as PhoneLoginCloudResult | undefined;
+    if (!result?.ok || !result.phoneNumber) {
+      throw new Error(
+        result?.message || "手机号验证失败，请确认云函数和环境配置",
+      );
+    }
+    loginWithVerifiedPhone(result.phoneNumber);
+    finishAuth("手机号登录成功");
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : "手机号快捷登录失败，请稍后重试";
+  } finally {
+    phoneLoading.value = false;
+  }
 }
 
 function submit() {
@@ -190,7 +288,7 @@ function handleLogout() {
           <text class="signed-in__eyebrow">Signed in</text>
           <text class="signed-in__title">已登录 {{ preferences?.nickname }}</text>
           <text class="signed-in__desc">
-            @{{ currentUser.username }} · {{ RISK_LABELS[preferences?.riskLevel ?? "C3"] }}
+            {{ accountIdentifier }} · {{ RISK_LABELS[preferences?.riskLevel ?? "C3"] }}
           </text>
           <view class="signed-in__summary">
             <view class="signed-in__summary-item">
@@ -218,8 +316,45 @@ function handleLogout() {
             <text class="eyebrow">Local account</text>
             <text class="auth-form-title">{{ activeTitle }}</text>
             <text class="auth-form-desc">
-              账户和配置只保存在当前设备，清除小程序数据后将无法恢复。
+              可使用微信手机号快捷登录，也可以创建独立的本地用户名账户。
             </text>
+          </view>
+
+          <!-- #ifdef MP-WEIXIN -->
+          <button
+            class="phone-login"
+            open-type="getPhoneNumber"
+            :loading="phoneLoading"
+            @getphonenumber="handleGetPhoneNumber"
+          >
+            <view class="phone-login__icon">
+              <AppIcon name="messageCircle" :size="20" color="#ffffff" />
+            </view>
+            <view class="phone-login__copy">
+              <text class="phone-login__title">手机号快捷登录</text>
+              <text class="phone-login__desc">微信授权手机号，一键验证登录</text>
+            </view>
+            <AppIcon name="chevronRight" :size="17" color="#94d7c5" />
+          </button>
+          <!-- #endif -->
+
+          <!-- #ifndef MP-WEIXIN -->
+          <button class="phone-login" @tap="showPhoneUnavailable">
+            <view class="phone-login__icon">
+              <AppIcon name="messageCircle" :size="20" color="#ffffff" />
+            </view>
+            <view class="phone-login__copy">
+              <text class="phone-login__title">手机号快捷登录</text>
+              <text class="phone-login__desc">微信小程序内可一键授权手机号</text>
+            </view>
+            <AppIcon name="chevronRight" :size="17" color="#94d7c5" />
+          </button>
+          <!-- #endif -->
+
+          <view class="auth-divider">
+            <view class="auth-divider__line" />
+            <text>或使用本地账户</text>
+            <view class="auth-divider__line" />
           </view>
 
           <view class="segmented auth-mode">
@@ -356,7 +491,7 @@ function handleLogout() {
           <view class="auth-local-note">
             <AppIcon name="info" :size="14" color="#7b8783" />
             <text>
-              当前为本地认证实现，不发送账号信息到服务器，也不支持跨设备同步。
+              手机号由微信授权并仅用于登录识别；本地用户名账户不支持跨设备同步。
             </text>
           </view>
         </view>
@@ -548,10 +683,73 @@ function handleLogout() {
   line-height: 1.65;
 }
 
+.phone-login {
+  display: flex;
+  width: 100%;
+  min-height: 58px;
+  align-items: center;
+  gap: 11px;
+  margin-top: 20px;
+  padding: 10px 13px;
+  border-radius: 7px;
+  background: var(--teal);
+  color: #ffffff;
+  text-align: left;
+}
+
+.phone-login:active {
+  background: #0a5b4c;
+}
+
+.phone-login__icon {
+  display: flex;
+  width: 35px;
+  height: 35px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.phone-login__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.phone-login__title {
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.phone-login__desc {
+  margin-top: 2px;
+  color: #b9e5d8;
+  font-size: 8px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 17px;
+  color: var(--muted-light);
+  font-size: 8px;
+}
+
+.auth-divider__line {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
 .auth-mode {
   display: flex;
   width: 100%;
-  margin-top: 22px;
+  margin-top: 12px;
 }
 
 .auth-mode .segmented__item {

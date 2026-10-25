@@ -110,6 +110,19 @@ test.describe("application smoke flow", () => {
     await page.goto("/#/pages/order/index");
     await expect(page.locator(".quantity-row__value")).toHaveText("3");
   });
+
+  test("phone quick login explains the H5 platform boundary", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-chromium");
+    await page.goto("/#/pages/auth/index");
+    await page.locator(".phone-login").click();
+    await expect(
+      page.getByText(
+        "微信一键获取手机号仅在微信小程序内可用。H5 需要接入短信验证码服务和后端会话接口。",
+      ),
+    ).toBeVisible();
+  });
 });
 
 test.describe("mobile layout", () => {

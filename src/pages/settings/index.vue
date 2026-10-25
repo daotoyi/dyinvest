@@ -12,7 +12,12 @@ import {
   type RiskLevel,
 } from "../../domain/user";
 
-const { currentUser, isLoggedIn, preferences, updatePreferences } = useAuth();
+const {
+  isLoggedIn,
+  accountIdentifier,
+  preferences,
+  updatePreferences,
+} = useAuth();
 
 const draft = ref({
   nickname: preferences.value?.nickname ?? "",
@@ -124,7 +129,7 @@ function save() {
                   <text class="settings-card__title">账户资料</text>
                   <text class="settings-card__meta">用于应用内展示和策略推荐入口</text>
                 </view>
-                <view class="chip chip--teal">@{{ currentUser?.username }}</view>
+                <view class="chip chip--teal">{{ accountIdentifier }}</view>
               </view>
 
               <view class="settings-field">
@@ -261,7 +266,7 @@ function save() {
                 {{ draft.nickname.slice(0, 1) || "U" }}
               </view>
               <text class="account-summary__name">{{ draft.nickname || "未命名用户" }}</text>
-              <text class="account-summary__username">@{{ currentUser?.username }}</text>
+              <text class="account-summary__username">{{ accountIdentifier }}</text>
               <view class="account-summary__meta">
                 <view class="chip">{{ RISK_LABELS[draft.riskLevel] }}</view>
                 <view class="chip">{{ EXPERIENCE_LABELS[draft.experience] }}</view>

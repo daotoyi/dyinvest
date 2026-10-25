@@ -5,8 +5,8 @@
   "uniStatistics": {
     "enable": false
   },
-  "versionName": "0.2.0",
-  "versionCode": "200",
+  "versionName": "0.2.1",
+  "versionCode": "201",
   "transformPx": false,
   "app-plus": {
     "usingComponents": true,
@@ -32,6 +32,7 @@
     "appid": "wx6aef5e7ef168ecdd",
     "libVersion": "3.16.1",
     "lazyCodeLoading": "requiredComponents",
+    "cloudfunctionRoot": "cloudfunctions/",
     "setting": {
       "urlCheck": true,
       "es6": true,

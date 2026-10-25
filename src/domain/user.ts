@@ -15,10 +15,17 @@ export interface LocalUserRecord {
   username: string;
   usernameNormalized: string;
   nickname: string;
+  authMethod?: "local" | "wechat_phone";
+  phone?: string;
   salt: string;
   passwordHash: string;
   hashIterations: number;
   createdAt: string;
+}
+
+export function maskPhone(phone?: string) {
+  if (!phone || phone.length < 7) return "";
+  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
 }
 
 export const EXPERIENCE_LABELS: Record<ExperienceLevel, string> = {

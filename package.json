@@ -1,6 +1,6 @@
 {
   "name": "options-lab",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "期权学习、策略研究与模拟交易跨端应用",
   "scripts": {
@@ -8,12 +8,13 @@
     "dev:mp-weixin": "uni -p mp-weixin",
     "dev:app": "uni -p app",
     "build:h5": "uni build -p h5",
-    "build:mp-weixin": "uni build -p mp-weixin",
+    "build:mp-weixin": "uni build -p mp-weixin && node scripts/prepare-mp.mjs",
     "build:app": "uni build -p app",
     "typecheck": "vue-tsc --noEmit",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:e2e": "playwright test",
-    "deploy:mp": "./scripts/deploy-mp.sh"
+    "deploy:mp": "./scripts/deploy-mp.sh",
+    "deploy:cloud": "npm run build:mp-weixin && node scripts/deploy-cloud.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030320261023001",
