@@ -45,6 +45,7 @@ const icons: Record<string, string> = {
   arrowLeft: '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
   arrowUpRight: '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
   arrowDownRight: '<path d="m7 7 10 10"/><path d="M17 7v10H7"/>',
+  chevronDown: '<path d="m6 9 6 6 6-6"/>',
   chevronRight: '<path d="m9 18 6-6-6-6"/>',
   play: '<polygon points="6 3 20 12 6 21 6 3"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',

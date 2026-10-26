@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
 import AppIcon from "../../components/AppIcon.vue";
 import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
@@ -47,6 +48,16 @@ const ivShocks = [-0.05, 0, 0.05];
 const priceShocks = [-0.05, -0.025, 0, 0.025, 0.05];
 const strikes = optionChain.map((row) => row.strike);
 
+onLoad((query) => {
+  const requestedId = String(query?.id ?? "");
+  if (
+    requestedId &&
+    visibleStrategies.value.some((template) => template.id === requestedId)
+  ) {
+    selectTemplate(requestedId);
+  }
+});
+
 const selectedTemplate = computed(
   () =>
     visibleStrategies.value.find(
@@ -54,6 +65,19 @@ const selectedTemplate = computed(
     ) ??
     visibleStrategies.value[0] ??
     strategyTemplates[0],
+);
+const strategyOptions = computed(() =>
+  visibleStrategies.value.map(
+    (template) => `${template.tag} · ${template.name}`,
+  ),
+);
+const selectedTemplateIndex = computed(() =>
+  Math.max(
+    0,
+    visibleStrategies.value.findIndex(
+      (template) => template.id === selectedTemplateId.value,
+    ),
+  ),
 );
 const strategySummary = computed(
   () =>
@@ -77,6 +101,11 @@ const scenarioRows = computed(() =>
 function selectTemplate(id: string) {
   selectedTemplateId.value = id;
   legs.value = buildStrategyLegs(id);
+}
+
+function changeTemplate(event: { detail: { value: number | string } }) {
+  const template = visibleStrategies.value[Number(event.detail.value)];
+  if (template) selectTemplate(template.id);
 }
 
 function changeQuantity(leg: StrategyLeg, delta: number) {
@@ -131,20 +160,36 @@ function goSimulate() {
         </PageHeader>
 
         <view class="strategy-toolbar">
-          <scroll-view class="template-scroll" scroll-x :show-scrollbar="false">
-            <view class="template-list">
+          <view class="strategy-picker-block">
+            <text class="strategy-picker-block__label">策略分类</text>
+            <picker
+              class="strategy-picker"
+              mode="selector"
+              :range="strategyOptions"
+              :value="selectedTemplateIndex"
+              @change="changeTemplate"
+            >
               <button
-              v-for="template in visibleStrategies"
-                :key="template.id"
-                class="template-pill"
-                :class="{ 'template-pill--active': selectedTemplateId === template.id }"
-                @tap="selectTemplate(template.id)"
+                class="strategy-picker__button"
+                :data-strategy-options="strategyOptions.join('|')"
               >
-                <text>{{ template.shortName }}</text>
-                <text class="template-pill__tag">{{ template.tag }}</text>
+                <view class="strategy-picker__copy">
+                  <view class="strategy-picker__title-row">
+                    <text class="strategy-picker__title">
+                      {{ selectedTemplate?.shortName }}
+                    </text>
+                    <text class="strategy-picker__tag">
+                      {{ selectedTemplate?.tag }}
+                    </text>
+                  </view>
+                  <text class="strategy-picker__meta">
+                    {{ selectedTemplate?.name }} · 共 {{ visibleStrategies.length }} 个策略
+                  </text>
+                </view>
+                <AppIcon name="chevronDown" :size="16" color="#52605c" />
               </button>
-            </view>
-          </scroll-view>
+            </picker>
+          </view>
           <view class="strategy-spot">
             <text class="strategy-spot__label">标的现价</text>
             <text class="strategy-spot__value mono">{{ underlying.spot.toFixed(3) }}</text>
@@ -477,52 +522,83 @@ function goSimulate() {
 
 .strategy-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 14px;
 }
 
-.template-scroll {
+.strategy-picker-block {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 340px;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.strategy-picker-block__label {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.strategy-picker {
+  width: 100%;
+}
+
+.strategy-picker__button {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.strategy-picker__copy {
+  display: flex;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
+}
+
+.strategy-picker__title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.strategy-picker__title {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.template-list {
-  display: inline-flex;
-  gap: 7px;
-}
-
-.template-pill {
-  display: inline-flex;
-  flex: 0 0 auto;
-  min-height: 38px;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surface);
-  color: var(--ink-soft);
-  font-size: 11px;
+.strategy-picker__tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--teal-wash);
+  color: var(--teal);
+  font-size: 8px;
   font-weight: 650;
   white-space: nowrap;
 }
 
-.template-pill--active {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: #ffffff;
-}
-
-.template-pill__tag {
+.strategy-picker__meta {
+  margin-top: 2px;
+  overflow: hidden;
   color: var(--muted-light);
   font-size: 8px;
-}
-
-.template-pill--active .template-pill__tag {
-  color: #b4c1bd;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .strategy-spot {
@@ -1102,16 +1178,18 @@ function goSimulate() {
   }
 
   .strategy-toolbar {
-    display: block;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 9px;
     margin-right: 0;
   }
 
-  .template-scroll {
-    width: 100%;
+  .strategy-picker-block {
+    flex-basis: auto;
   }
 
   .strategy-spot {
-    margin-top: 12px;
+    justify-content: flex-end;
   }
 
   .strategy-layout {

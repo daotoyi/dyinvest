@@ -12,7 +12,13 @@ test.describe("application smoke flow", () => {
     await page.waitForURL(/pages\/strategy\/index/);
     await expect(page.locator(".chart-panel__title")).toHaveText("牛市看涨价差");
 
-    await page.getByText("铁鹰", { exact: true }).click();
+    await page.locator(".strategy-picker__button").click();
+    await expect(page.locator(".uni-picker-container:visible")).toBeVisible();
+    await expect(page.locator(".strategy-picker__button")).toHaveAttribute(
+      "data-strategy-options",
+      /区间 · 铁鹰式/,
+    );
+    await page.goto("/#/pages/strategy/index?id=iron-condor");
     await expect(page.locator(".chart-panel__title")).toHaveText("铁鹰式");
     await expect(page.locator(".leg-row")).toHaveCount(4);
 
@@ -167,9 +173,10 @@ test.describe("application smoke flow", () => {
       page.getByText("Delta 与 Gamma：方向与加速度", { exact: true }),
     ).toHaveCount(0);
     await page.goto("/#/pages/strategy/index");
-    await expect(
-      page.locator(".template-pill").filter({ hasText: "铁鹰" }),
-    ).toHaveCount(0);
+    await expect(page.locator(".strategy-picker__button")).not.toHaveAttribute(
+      "data-strategy-options",
+      /铁鹰式/,
+    );
 
     await page.goto("/#/pages/admin/index");
     await page
