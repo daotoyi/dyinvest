@@ -90,7 +90,7 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 npm run test:e2e
 
 - 主分支：`main`
 - 每次功能更新完成验证后提交并推送到远端。
-- GitHub Actions 会执行类型检查、单元测试、H5 构建和微信小程序构建。
+- GitHub push 不触发自动 CI，验证与发布由本地 `npm run deploy:all` 完成。
 
 ## 当前边界
 
