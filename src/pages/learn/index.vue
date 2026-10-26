@@ -122,7 +122,7 @@ function openLesson(id: string) {
 
         <view class="lesson-list">
           <button
-            v-for="(lesson, index) in filteredLessons"
+            v-for="lesson in filteredLessons"
             :key="lesson.id"
             class="lesson-card card"
             :class="{ 'lesson-card--done': isCompleted(lesson.id) }"
@@ -136,9 +136,10 @@ function openLesson(id: string) {
                 <text>{{ lesson.chapter }}</text>
                 <view class="lesson-card__meta-dot" />
                 <text>{{ lesson.level }}</text>
+                <view class="lesson-card__meta-dot" />
+                <text>{{ lesson.minutes }} 分钟</text>
               </view>
               <text class="lesson-card__title">{{ lesson.title }}</text>
-              <text class="lesson-card__summary">{{ lesson.summary }}</text>
             </view>
             <view class="lesson-card__side">
               <view
@@ -151,14 +152,7 @@ function openLesson(id: string) {
                   :color="isCompleted(lesson.id) ? '#0e6f5c' : '#52605c'"
                 />
               </view>
-              <view class="lesson-card__duration">
-                <AppIcon name="clock" :size="12" color="#7b8783" />
-                <text>{{ lesson.minutes }} 分钟</text>
-              </view>
-              <view class="lesson-card__action">
-                <text>{{ isCompleted(lesson.id) ? "复习" : index === 0 && filteredLessons.length > 1 ? "继续" : "学习" }}</text>
-                <AppIcon name="arrowRight" :size="14" color="#0e6f5c" />
-              </view>
+              <AppIcon name="chevronRight" :size="14" color="#95a09c" />
             </view>
           </button>
         </view>
@@ -298,17 +292,17 @@ function openLesson(id: string) {
 .lesson-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  margin-top: 12px;
+  gap: 7px;
+  margin-top: 10px;
 }
 
 .lesson-card {
   display: grid;
-  min-height: 108px;
-  grid-template-columns: 30px minmax(0, 1fr) 66px;
+  min-height: 70px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 11px;
-  padding: 13px 14px;
+  gap: 9px;
+  padding: 10px 12px;
   text-align: left;
   transition:
     transform 160ms ease,
@@ -322,8 +316,7 @@ function openLesson(id: string) {
 }
 
 .lesson-card__index {
-  align-self: start;
-  padding-top: 2px;
+  align-self: center;
   color: var(--muted-light);
   font-size: 10px;
   font-weight: 650;
@@ -331,8 +324,8 @@ function openLesson(id: string) {
 
 .lesson-card__status {
   display: flex;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
@@ -366,44 +359,20 @@ function openLesson(id: string) {
 }
 
 .lesson-card__title {
-  margin-top: 4px;
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 720;
-  line-height: 1.3;
-}
-
-.lesson-card__summary {
-  display: -webkit-box;
-  margin-top: 4px;
+  margin-top: 3px;
   overflow: hidden;
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.45;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lesson-card__side {
   display: flex;
-  align-items: flex-end;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.lesson-card__duration,
-.lesson-card__action {
-  display: flex;
   align-items: center;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 9px;
-  white-space: nowrap;
-}
-
-.lesson-card__action {
-  color: var(--teal);
-  font-weight: 700;
+  gap: 3px;
 }
 
 .lesson-card--done {
@@ -494,9 +463,9 @@ function openLesson(id: string) {
   }
 
   .lesson-card {
-    min-height: 100px;
-    grid-template-columns: 26px minmax(0, 1fr) 62px;
-    padding: 12px;
+    min-height: 62px;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    padding: 9px 11px;
   }
 
   .learn-note {

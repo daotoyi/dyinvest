@@ -138,15 +138,16 @@ function showDisclosure() {
           <view class="profile-hero__actions">
             <button v-if="isAdmin" class="profile-admin-entry" @tap="openAdmin">
               <view class="profile-admin-entry__icon">
-                <AppIcon name="chart" :size="18" color="#ffffff" />
+                <AppIcon name="chart" :size="17" color="#ffffff" />
               </view>
-              <view class="profile-admin-entry__copy">
-                <text>运营管理后台</text>
-                <text>管理员工作区</text>
-              </view>
-              <AppIcon name="arrowUpRight" :size="15" color="#b9e5d8" />
+              <text>管理后台</text>
+              <AppIcon name="arrowUpRight" :size="14" color="#b9e5d8" />
             </button>
-            <button class="profile-hero__badge" @tap="isLoggedIn ? openSettings() : openAuth()">
+            <button
+              v-else
+              class="profile-hero__badge"
+              @tap="isLoggedIn ? openSettings() : openAuth()"
+            >
               <AppIcon name="user" :size="18" color="#b9e5d8" />
               <view>
                 <text>账户状态</text>
@@ -335,7 +336,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>道元期权 · DAO OPTIONS</text>
           <view class="profile-footer__dot" />
-          <text>v0.3.3</text>
+          <text>v0.3.4</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>
@@ -347,32 +348,35 @@ function showDisclosure() {
 <style scoped lang="scss">
 .profile-hero {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 20px;
-  padding: 22px;
-  border-radius: 8px;
-  background: #17211e;
+  gap: 10px;
   color: #ffffff;
 }
 
 .profile-identity {
   display: flex;
+  min-width: 0;
+  flex: 1;
   align-items: center;
   gap: 13px;
+  padding: 15px 17px;
+  border-radius: 8px;
+  background: #17211e;
 }
 
 .profile-avatar {
   display: flex;
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(185, 229, 216, 0.2);
   border-radius: 8px;
   background: rgba(185, 229, 216, 0.08);
   color: #b9e5d8;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -382,7 +386,7 @@ function showDisclosure() {
 }
 
 .profile-identity__name {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 720;
 }
 
@@ -405,17 +409,18 @@ function showDisclosure() {
 .profile-hero__actions {
   display: flex;
   align-items: stretch;
-  gap: 8px;
 }
 
 .profile-admin-entry {
   display: flex;
-  min-height: 48px;
+  min-width: 128px;
+  min-height: 72px;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid rgba(185, 229, 216, 0.2);
-  border-radius: 7px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 8px;
   background: var(--teal);
   text-align: left;
 }
@@ -431,34 +436,22 @@ function showDisclosure() {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.profile-admin-entry__copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.profile-admin-entry__copy text:first-child {
+.profile-admin-entry > text {
   color: #ffffff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  white-space: nowrap;
-}
-
-.profile-admin-entry__copy text:last-child {
-  margin-top: 1px;
-  color: #b9e5d8;
-  font-size: 8px;
   white-space: nowrap;
 }
 
 .profile-hero__badge {
   display: flex;
+  min-height: 72px;
   align-items: center;
   gap: 9px;
-  padding: 9px 11px;
+  padding: 12px 14px;
   border: 1px solid rgba(185, 229, 216, 0.17);
-  border-radius: 6px;
-  background: rgba(185, 229, 216, 0.05);
+  border-radius: 8px;
+  background: #17211e;
 }
 
 .profile-hero__badge view {
@@ -740,10 +733,6 @@ function showDisclosure() {
 }
 
 @media (max-width: 900px) {
-  .profile-hero {
-    padding: 18px;
-  }
-
   .profile-hero__actions {
     margin-left: auto;
   }
@@ -753,7 +742,18 @@ function showDisclosure() {
   }
 
   .profile-admin-entry {
-    min-height: 44px;
+    min-width: 112px;
+    min-height: 66px;
+    padding: 10px 12px;
+  }
+
+  .profile-identity {
+    padding: 12px 13px;
+  }
+
+  .profile-avatar {
+    width: 38px;
+    height: 38px;
   }
 
   .account-strip {

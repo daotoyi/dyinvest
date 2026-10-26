@@ -5,8 +5,8 @@
   "uniStatistics": {
     "enable": false
   },
-  "versionName": "0.3.3",
-  "versionCode": "303",
+  "versionName": "0.3.4",
+  "versionCode": "304",
   "transformPx": false,
   "app-plus": {
     "usingComponents": true,
