@@ -32,7 +32,7 @@ npm run typecheck
 npm run test:unit
 WECHAT_CLOUD_ENV="$CLOUD_ENV" npm run deploy:cloud
 MP_VERSION="$VERSION" \
-  MP_DESC="期权工坊${VERSION}：云环境与网站同步发布" \
+  MP_DESC="道元期权${VERSION}：云环境与网站同步发布" \
   npm run deploy:mp
 npm run build:h5
 cp dist/build/h5/index.html dist/build/h5/404.html

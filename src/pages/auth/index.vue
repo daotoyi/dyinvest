@@ -255,8 +255,8 @@ function handleLogout() {
         <view class="auth-brand">
           <view class="auth-brand__mark">θ</view>
           <view>
-            <text class="auth-brand__name">期权工坊</text>
-            <text class="auth-brand__meta">THETA LAB</text>
+            <text class="auth-brand__name">道元期权</text>
+            <text class="auth-brand__meta">DAO OPTIONS</text>
           </view>
         </view>
 

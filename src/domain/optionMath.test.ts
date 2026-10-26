@@ -4,7 +4,11 @@ import {
   blackScholesPrice,
   impliedVolatility,
 } from "./optionMath";
-import { buildStrategyLegs, calculateStrategyMetrics } from "../data/strategies";
+import {
+  buildStrategyLegs,
+  calculateStrategyMetrics,
+  strategyTemplates,
+} from "../data/strategies";
 import type { StrategyLeg } from "./types";
 
 describe("Black-Scholes-Merton", () => {
@@ -90,6 +94,24 @@ describe("Black-Scholes-Merton", () => {
 });
 
 describe("strategy payoff", () => {
+  it("builds every strategy template with available demo quotes", () => {
+    expect(new Set(strategyTemplates.map((template) => template.id)).size).toBe(
+      strategyTemplates.length,
+    );
+
+    for (const template of strategyTemplates) {
+      const legs = buildStrategyLegs(template.id);
+      expect(legs.length, template.id).toBe(template.legs.length);
+      expect(
+        legs.every((leg) => Number.isFinite(leg.premium) && leg.premium > 0),
+        template.id,
+      ).toBe(true);
+      expect(calculateStrategyMetrics(legs).scenarios, template.id).toHaveLength(
+        15,
+      );
+    }
+  });
+
   it("keeps a bull call spread risk bounded", () => {
     const metrics = calculateStrategyMetrics(
       buildStrategyLegs("bull-call-spread"),

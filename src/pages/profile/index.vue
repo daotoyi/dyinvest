@@ -135,13 +135,25 @@ function showDisclosure() {
               </view>
             </view>
           </view>
-          <button class="profile-hero__badge" @tap="isLoggedIn ? openSettings() : openAuth()">
-            <AppIcon name="user" :size="18" color="#b9e5d8" />
-            <view>
-              <text>账户状态</text>
-              <text>{{ isLoggedIn ? "已登录" : "未登录" }}</text>
-            </view>
-          </button>
+          <view class="profile-hero__actions">
+            <button v-if="isAdmin" class="profile-admin-entry" @tap="openAdmin">
+              <view class="profile-admin-entry__icon">
+                <AppIcon name="chart" :size="18" color="#ffffff" />
+              </view>
+              <view class="profile-admin-entry__copy">
+                <text>运营管理后台</text>
+                <text>管理员工作区</text>
+              </view>
+              <AppIcon name="arrowUpRight" :size="15" color="#b9e5d8" />
+            </button>
+            <button class="profile-hero__badge" @tap="isLoggedIn ? openSettings() : openAuth()">
+              <AppIcon name="user" :size="18" color="#b9e5d8" />
+              <view>
+                <text>账户状态</text>
+                <text>{{ isLoggedIn ? "已登录" : "未登录" }}</text>
+              </view>
+            </button>
+          </view>
         </view>
 
         <view class="account-strip" :class="{ 'account-strip--guest': !isLoggedIn }">
@@ -170,18 +182,6 @@ function showDisclosure() {
             <AppIcon name="chevronRight" :size="14" color="#17211e" />
           </button>
         </view>
-
-        <button v-if="isAdmin" class="admin-entry" @tap="openAdmin">
-          <view class="admin-entry__icon">
-            <AppIcon name="chart" :size="21" color="#b9e5d8" />
-          </view>
-          <view class="admin-entry__copy">
-            <text class="admin-entry__title">运营管理后台</text>
-            <text class="admin-entry__desc">用户、课程、策略与首页公告管理</text>
-          </view>
-          <view class="admin-entry__badge">管理员</view>
-          <AppIcon name="arrowUpRight" :size="17" color="#b9e5d8" />
-        </button>
 
         <view class="profile-stats">
           <view class="profile-stat card">
@@ -247,22 +247,7 @@ function showDisclosure() {
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
             <button
-              v-if="isAdmin"
-              class="settings-row"
-              @tap="openAdmin"
-            >
-              <view class="settings-row__icon">
-                <AppIcon name="chart" :size="18" color="#0e6f5c" />
-              </view>
-              <view class="settings-row__copy">
-                <text class="settings-row__title">运营管理后台</text>
-                <text class="settings-row__desc">本地用户与内容发布管理</text>
-              </view>
-              <view class="settings-row__status">管理员</view>
-              <AppIcon name="chevronRight" :size="15" color="#95a09c" />
-            </button>
-            <button
-              v-else
+              v-if="!isLoggedIn"
               class="settings-row"
               @tap="openAuth('register')"
             >
@@ -348,9 +333,9 @@ function showDisclosure() {
         </view>
 
         <view class="profile-footer">
-          <text>期权工坊 · THETA LAB</text>
+          <text>道元期权 · DAO OPTIONS</text>
           <view class="profile-footer__dot" />
-          <text>v0.3.2</text>
+          <text>v0.3.3</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>
@@ -415,6 +400,55 @@ function showDisclosure() {
   height: 3px;
   border-radius: 50%;
   background: #56635e;
+}
+
+.profile-hero__actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.profile-admin-entry {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(185, 229, 216, 0.2);
+  border-radius: 7px;
+  background: var(--teal);
+  text-align: left;
+}
+
+.profile-admin-entry__icon {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.profile-admin-entry__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.profile-admin-entry__copy text:first-child {
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.profile-admin-entry__copy text:last-child {
+  margin-top: 1px;
+  color: #b9e5d8;
+  font-size: 8px;
+  white-space: nowrap;
 }
 
 .profile-hero__badge {
@@ -498,58 +532,6 @@ function showDisclosure() {
   padding: 0 10px;
   flex: 0 0 auto;
   font-size: 9px;
-}
-
-.admin-entry {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 11px;
-  margin-top: 12px;
-  padding: 13px 15px;
-  border-radius: 8px;
-  background: #17211e;
-  color: #ffffff;
-  text-align: left;
-}
-
-.admin-entry__icon {
-  display: flex;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(185, 229, 216, 0.14);
-  border-radius: 6px;
-  background: rgba(185, 229, 216, 0.06);
-}
-
-.admin-entry__copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.admin-entry__title {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.admin-entry__desc {
-  margin-top: 2px;
-  color: #8c9b96;
-  font-size: 8px;
-}
-
-.admin-entry__badge {
-  padding: 3px 6px;
-  border: 1px solid rgba(185, 229, 216, 0.16);
-  border-radius: 4px;
-  color: #b9e5d8;
-  font-size: 7px;
-  font-weight: 650;
 }
 
 .profile-stats {
@@ -762,8 +744,16 @@ function showDisclosure() {
     padding: 18px;
   }
 
+  .profile-hero__actions {
+    margin-left: auto;
+  }
+
   .profile-hero__badge {
     display: none;
+  }
+
+  .profile-admin-entry {
+    min-height: 44px;
   }
 
   .account-strip {

@@ -39,8 +39,8 @@ function go(path: string) {
       <view class="brand block">
         <view class="brand__mark">θ</view>
         <view class="brand__copy">
-          <text class="brand__name">期权工坊</text>
-          <text class="brand__meta">THETA LAB</text>
+          <text class="brand__name">道元期权</text>
+          <text class="brand__meta">DAO OPTIONS</text>
         </view>
       </view>
 
@@ -73,7 +73,7 @@ function go(path: string) {
         <view class="rail-foot">
           <text>演示行情</text>
           <view class="rail-foot__dot" />
-          <text>v0.3.2</text>
+          <text>v0.3.3</text>
         </view>
       </view>
     </view>

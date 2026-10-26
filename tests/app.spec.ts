@@ -140,9 +140,9 @@ test.describe("application smoke flow", () => {
     await inputs.nth(1).fill(adminPassword as string);
     await page.getByText("登录账户", { exact: true }).click();
     await page.waitForURL(/pages\/profile\/index/, { timeout: 6000 });
-    await expect(page.locator(".admin-entry")).toBeVisible();
+    await expect(page.locator(".profile-admin-entry")).toBeVisible();
 
-    await page.locator(".admin-entry").click();
+    await page.locator(".profile-admin-entry").click();
     await page.waitForURL(/pages\/admin\/index/);
     await expect(page.locator(".admin-header__title")).toHaveText("数据概览");
 

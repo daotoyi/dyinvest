@@ -242,7 +242,7 @@ function restoreContentDefaults() {
       <view class="admin-brand">
         <view class="admin-brand__mark">θ</view>
         <view>
-          <text class="admin-brand__name">期权工坊</text>
+          <text class="admin-brand__name">道元期权</text>
           <text class="admin-brand__meta">OPTIONS OPS</text>
         </view>
       </view>
@@ -302,7 +302,7 @@ function restoreContentDefaults() {
         <view class="admin-brand">
           <view class="admin-brand__mark">θ</view>
           <view>
-            <text class="admin-brand__name">期权工坊管理台</text>
+            <text class="admin-brand__name">道元期权管理台</text>
             <text class="admin-brand__meta">OPTIONS OPS</text>
           </view>
         </view>
@@ -465,7 +465,7 @@ function restoreContentDefaults() {
               </view>
               <view class="admin-system__row">
                 <text>应用版本</text>
-                <text class="mono">v0.3.2</text>
+                <text class="mono">v0.3.3</text>
               </view>
               <view class="admin-system__row">
                 <text>小程序 AppID</text>
@@ -706,7 +706,7 @@ function restoreContentDefaults() {
             <view class="admin-preview__window">
               <view class="admin-preview__header">
                 <view class="admin-preview__logo">θ</view>
-                <text>期权工坊</text>
+                <text>道元期权</text>
               </view>
               <view
                 v-if="announcementDraft.enabled"

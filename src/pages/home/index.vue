@@ -90,8 +90,8 @@ function goLesson() {
         <view class="mobile-brand">
           <view class="mobile-brand__mark">θ</view>
           <view>
-            <text class="mobile-brand__name">期权工坊</text>
-            <text class="mobile-brand__meta">THETA LAB</text>
+            <text class="mobile-brand__name">道元期权</text>
+            <text class="mobile-brand__meta">DAO OPTIONS</text>
           </view>
           <button class="icon-button mobile-brand__bell" @tap="go('/pages/profile/index')">
             <AppIcon name="bell" :size="18" />

@@ -120,7 +120,7 @@ function openLesson(id: string) {
           </view>
         </view>
 
-        <view class="lesson-grid">
+        <view class="lesson-list">
           <button
             v-for="(lesson, index) in filteredLessons"
             :key="lesson.id"
@@ -128,20 +128,8 @@ function openLesson(id: string) {
             :class="{ 'lesson-card--done': isCompleted(lesson.id) }"
             @tap="openLesson(lesson.id)"
           >
-            <view class="lesson-card__top">
-              <view class="lesson-card__index mono">
-                {{ String(lessons.findIndex((item) => item.id === lesson.id) + 1).padStart(2, "0") }}
-              </view>
-              <view
-                class="lesson-card__status"
-                :class="{ 'lesson-card__status--done': isCompleted(lesson.id) }"
-              >
-                <AppIcon
-                  :name="isCompleted(lesson.id) ? 'check' : lesson.icon"
-                  :size="15"
-                  :color="isCompleted(lesson.id) ? '#0e6f5c' : '#52605c'"
-                />
-              </view>
+            <view class="lesson-card__index mono">
+              {{ String(lessons.findIndex((item) => item.id === lesson.id) + 1).padStart(2, "0") }}
             </view>
             <view class="lesson-card__body">
               <view class="lesson-card__meta">
@@ -152,9 +140,19 @@ function openLesson(id: string) {
               <text class="lesson-card__title">{{ lesson.title }}</text>
               <text class="lesson-card__summary">{{ lesson.summary }}</text>
             </view>
-            <view class="lesson-card__foot">
+            <view class="lesson-card__side">
+              <view
+                class="lesson-card__status"
+                :class="{ 'lesson-card__status--done': isCompleted(lesson.id) }"
+              >
+                <AppIcon
+                  :name="isCompleted(lesson.id) ? 'check' : lesson.icon"
+                  :size="14"
+                  :color="isCompleted(lesson.id) ? '#0e6f5c' : '#52605c'"
+                />
+              </view>
               <view class="lesson-card__duration">
-                <AppIcon name="clock" :size="13" color="#7b8783" />
+                <AppIcon name="clock" :size="12" color="#7b8783" />
                 <text>{{ lesson.minutes }} 分钟</text>
               </view>
               <view class="lesson-card__action">
@@ -205,7 +203,7 @@ function openLesson(id: string) {
 }
 
 .course-progress {
-  padding: 22px;
+  padding: 18px 20px;
   border: 1px solid #cfded9;
   border-radius: 8px;
   background: #edf5f2;
@@ -226,7 +224,7 @@ function openLesson(id: string) {
 .course-progress__title {
   margin-top: 4px;
   color: var(--ink);
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 750;
 }
 
@@ -238,7 +236,7 @@ function openLesson(id: string) {
 
 .course-progress__bar {
   height: 5px;
-  margin-top: 20px;
+  margin-top: 14px;
   overflow: hidden;
   border-radius: 3px;
   background: rgba(14, 111, 92, 0.12);
@@ -255,7 +253,7 @@ function openLesson(id: string) {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 13px;
 }
 
 .progress-stat {
@@ -290,25 +288,27 @@ function openLesson(id: string) {
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
-  margin-top: 30px;
+  margin-top: 22px;
 }
 
 .lesson-toolbar__heading {
   margin-bottom: 0;
 }
 
-.lesson-grid {
+.lesson-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  gap: 9px;
+  margin-top: 12px;
 }
 
 .lesson-card {
-  display: flex;
-  min-height: 210px;
-  flex-direction: column;
-  padding: 18px;
+  display: grid;
+  min-height: 108px;
+  grid-template-columns: 30px minmax(0, 1fr) 66px;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 14px;
   text-align: left;
   transition:
     transform 160ms ease,
@@ -321,25 +321,21 @@ function openLesson(id: string) {
   border-color: var(--line-strong);
 }
 
-.lesson-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .lesson-card__index {
+  align-self: start;
+  padding-top: 2px;
   color: var(--muted-light);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 650;
 }
 
 .lesson-card__status {
   display: flex;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--surface-soft);
 }
 
@@ -349,8 +345,8 @@ function openLesson(id: string) {
 
 .lesson-card__body {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  margin-top: 18px;
 }
 
 .lesson-card__meta {
@@ -370,26 +366,29 @@ function openLesson(id: string) {
 }
 
 .lesson-card__title {
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--ink);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 720;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .lesson-card__summary {
-  margin-top: 6px;
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 9px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.lesson-card__foot {
+.lesson-card__side {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 16px;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .lesson-card__duration,
@@ -398,7 +397,8 @@ function openLesson(id: string) {
   align-items: center;
   gap: 5px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
+  white-space: nowrap;
 }
 
 .lesson-card__action {
@@ -453,7 +453,7 @@ function openLesson(id: string) {
 
 @media (max-width: 900px) {
   .course-progress {
-    padding: 18px;
+    padding: 16px;
   }
 
   .course-progress__main {
@@ -478,7 +478,7 @@ function openLesson(id: string) {
 
   .lesson-toolbar {
     align-items: flex-start;
-    margin-top: 24px;
+    margin-top: 20px;
   }
 
   .lesson-toolbar .segmented {
@@ -489,12 +489,14 @@ function openLesson(id: string) {
     padding: 0 9px;
   }
 
-  .lesson-grid {
+  .lesson-list {
     grid-template-columns: 1fr;
   }
 
   .lesson-card {
-    min-height: 196px;
+    min-height: 100px;
+    grid-template-columns: 26px minmax(0, 1fr) 62px;
+    padding: 12px;
   }
 
   .learn-note {

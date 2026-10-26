@@ -1,12 +1,12 @@
 {
-  "name": "期权工坊",
+  "name": "道元期权",
   "appid": "__UNI__OPTIONSLAB",
-  "description": "期权学习、策略研究与模拟交易",
+  "description": "道元期权：期权学习、策略研究与模拟交易",
   "uniStatistics": {
     "enable": false
   },
-  "versionName": "0.3.2",
-  "versionCode": "302",
+  "versionName": "0.3.3",
+  "versionCode": "303",
   "transformPx": false,
   "app-plus": {
     "usingComponents": true,
@@ -45,7 +45,7 @@
     "usingComponents": true
   },
   "h5": {
-    "title": "期权工坊",
+    "title": "道元期权",
     "router": {
       "mode": "hash"
     }

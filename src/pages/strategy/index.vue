@@ -55,6 +55,10 @@ const selectedTemplate = computed(
     visibleStrategies.value[0] ??
     strategyTemplates[0],
 );
+const strategySummary = computed(
+  () =>
+    `覆盖方向、信用价差、波动率、区间与尾部风险，共 ${visibleStrategies.value.length} 个策略模板。`,
+);
 const metrics = computed(() => calculateStrategyMetrics(legs.value));
 const scenarioRows = computed(() =>
   priceShocks.map((priceShock) => ({
@@ -113,7 +117,7 @@ function goSimulate() {
         <PageHeader
           title="策略实验室"
           eyebrow="Strategy lab"
-          subtitle="组合行权价、数量与到期结构，同时查看到期损益和当前风险敞口。"
+          :subtitle="strategySummary"
         >
           <template #action>
             <view class="strategy-market-chip">

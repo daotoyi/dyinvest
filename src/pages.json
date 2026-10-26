@@ -4,7 +4,7 @@
       "path": "pages/home/index",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "期权工坊"
+        "navigationBarTitleText": "道元期权"
       }
     },
     {
@@ -83,6 +83,6 @@
     "backgroundColor": "#f5f7f6",
     "backgroundTextStyle": "dark",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "期权工坊"
+    "navigationBarTitleText": "道元期权"
   }
 }
