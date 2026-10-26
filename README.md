@@ -57,7 +57,7 @@ npm run build:app
 当前小程序 AppID 已配置为 `wx6aef5e7ef168ecdd`。开发者工具登录后可以执行：
 
 ```bash
-MP_VERSION=0.3.6 MP_DESC="道元期权0.3.6" npm run deploy:mp
+MP_VERSION=0.3.7 MP_DESC="道元期权0.3.7" npm run deploy:mp
 ```
 
 该命令会重新构建小程序、校验 AppID 并上传开发版。上传后需要在微信公众平台设置体验版或提交审核。微信开发者工具未登录时需要先扫码登录。

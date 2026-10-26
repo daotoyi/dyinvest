@@ -45,6 +45,10 @@ const selectedTemplateId = ref(initialStrategyId);
 const legs = ref<StrategyLeg[]>(buildStrategyLegs(selectedTemplateId.value));
 const activeTab = ref<"chart" | "scenario">("chart");
 const openCategoryId = ref<string | null>(null);
+const isWeixinMiniProgram = ref(false);
+// #ifdef MP-WEIXIN
+isWeixinMiniProgram.value = true;
+// #endif
 const ivShocks = [-0.05, 0, 0.05];
 const priceShocks = [-0.05, -0.025, 0, 0.025, 0.05];
 const strikes = optionChain.map((row) => row.strike);
@@ -52,29 +56,39 @@ const strategyCategoryDefinitions = [
   {
     id: "direction-spread",
     label: "方向价差",
+    shortLabel: "方向",
     tags: ["方向", "合成方向", "价差"],
   },
   {
     id: "credit-spread",
     label: "信用价差",
+    shortLabel: "信用",
     tags: ["信用价差"],
   },
   {
     id: "volatility",
     label: "波动率",
+    shortLabel: "波动",
     tags: ["波动率", "卖方波动率"],
   },
   {
     id: "range",
     label: "区间",
+    shortLabel: "区间",
     tags: ["区间", "收敛", "偏卖方"],
   },
   {
     id: "ratio",
     label: "比例",
+    shortLabel: "比例",
     tags: ["比例"],
   },
-] satisfies Array<{ id: string; label: string; tags: string[] }>;
+] satisfies Array<{
+  id: string;
+  label: string;
+  shortLabel: string;
+  tags: string[];
+}>;
 
 onLoad((query) => {
   const requestedId = String(query?.id ?? "");
@@ -114,6 +128,22 @@ const activeCategoryId = computed(
     strategyCategories.value[0]?.id ??
     "",
 );
+const openCategory = computed(() =>
+  strategyCategories.value.find(
+    (category) => category.id === openCategoryId.value,
+  ),
+);
+const openCategoryLayoutHeight = computed(() =>
+  openCategory.value
+    ? 58 + openCategory.value.strategies.length * 44
+    : 0,
+);
+const toolbarStyle = computed(() => ({
+  paddingBottom:
+    isWeixinMiniProgram.value && openCategoryId.value
+      ? `${openCategoryLayoutHeight.value}px`
+      : "0px",
+}));
 const strategySummary = computed(
   () =>
     `覆盖方向、信用价差、波动率、区间与尾部风险，共 ${visibleStrategies.value.length} 个策略模板。`,
@@ -210,7 +240,7 @@ function goSimulate() {
           </template>
         </PageHeader>
 
-        <view class="strategy-toolbar">
+        <view class="strategy-toolbar" :style="toolbarStyle">
           <view class="strategy-picker-block">
             <text class="strategy-picker-block__label">策略分类</text>
             <view
@@ -232,7 +262,12 @@ function goSimulate() {
                   }"
                   @tap="toggleCategory(category.id)"
                 >
-                  <text>{{ category.label }}</text>
+                  <text class="strategy-category__label strategy-category__label--full">
+                    {{ category.label }}
+                  </text>
+                  <text class="strategy-category__label strategy-category__label--short">
+                    {{ category.shortLabel }}
+                  </text>
                   <view
                     class="strategy-category__chevron"
                     :class="{ 'strategy-category__chevron--open': openCategoryId === category.id }"
@@ -619,6 +654,7 @@ function goSimulate() {
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 14px;
+  transition: padding-bottom 160ms ease;
   z-index: 12;
 }
 
@@ -647,6 +683,7 @@ function goSimulate() {
   position: relative;
   display: flex;
   min-width: 0;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   z-index: 30;
@@ -682,6 +719,10 @@ function goSimulate() {
   border-color: #9bc9bb;
   background: var(--teal-wash);
   color: var(--teal);
+}
+
+.strategy-category__label--short {
+  display: none;
 }
 
 .strategy-category__chevron {
@@ -1455,6 +1496,25 @@ function goSimulate() {
   }
 
   .scenario-price {
+    padding: 0 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .strategy-category__label--full {
+    display: none;
+  }
+
+  .strategy-category__label--short {
+    display: inline;
+  }
+
+  .strategy-categories {
+    gap: 4px;
+  }
+
+  .strategy-category__trigger {
+    gap: 2px;
     padding: 0 6px;
   }
 }

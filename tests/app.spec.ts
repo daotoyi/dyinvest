@@ -268,4 +268,34 @@ test.describe("mobile layout", () => {
     }
     expect(pageErrors).toEqual([]);
   });
+
+  test("strategy category menus remain fully visible on narrow screens", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile-chromium");
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto("/#/pages/strategy/index");
+
+    const categoryButtons = page.locator(".strategy-category__trigger");
+    await expect(categoryButtons).toHaveCount(5);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+        ),
+      )
+      .toBe(true);
+
+    await categoryButtons.filter({ hasText: "方向" }).click();
+    await expect(page.locator(".strategy-category-menu__item")).toHaveCount(5);
+    await expect(
+      page
+        .locator(".strategy-category-menu__item")
+        .filter({ hasText: "风险逆转" }),
+    ).toBeVisible();
+
+    const menu = await page.locator(".strategy-category-menu").boundingBox();
+    expect(menu?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((menu?.x ?? 0) + (menu?.width ?? 0)).toBeLessThanOrEqual(320);
+  });
 });
