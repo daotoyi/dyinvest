@@ -44,9 +44,37 @@ const initialStrategyId =
 const selectedTemplateId = ref(initialStrategyId);
 const legs = ref<StrategyLeg[]>(buildStrategyLegs(selectedTemplateId.value));
 const activeTab = ref<"chart" | "scenario">("chart");
+const openCategoryId = ref<string | null>(null);
 const ivShocks = [-0.05, 0, 0.05];
 const priceShocks = [-0.05, -0.025, 0, 0.025, 0.05];
 const strikes = optionChain.map((row) => row.strike);
+const strategyCategoryDefinitions = [
+  {
+    id: "direction-spread",
+    label: "方向价差",
+    tags: ["方向", "合成方向", "价差"],
+  },
+  {
+    id: "credit-spread",
+    label: "信用价差",
+    tags: ["信用价差"],
+  },
+  {
+    id: "volatility",
+    label: "波动率",
+    tags: ["波动率", "卖方波动率"],
+  },
+  {
+    id: "range",
+    label: "区间",
+    tags: ["区间", "收敛", "偏卖方"],
+  },
+  {
+    id: "ratio",
+    label: "比例",
+    tags: ["比例"],
+  },
+] satisfies Array<{ id: string; label: string; tags: string[] }>;
 
 onLoad((query) => {
   const requestedId = String(query?.id ?? "");
@@ -66,18 +94,25 @@ const selectedTemplate = computed(
     visibleStrategies.value[0] ??
     strategyTemplates[0],
 );
-const strategyOptions = computed(() =>
-  visibleStrategies.value.map(
-    (template) => `${template.tag} · ${template.name}`,
-  ),
+const strategyCategories = computed(() =>
+  strategyCategoryDefinitions
+    .map((category) => ({
+      ...category,
+      strategies: visibleStrategies.value.filter((template) =>
+        category.tags.includes(template.tag),
+      ),
+    }))
+    .filter((category) => category.strategies.length > 0),
 );
-const selectedTemplateIndex = computed(() =>
-  Math.max(
-    0,
-    visibleStrategies.value.findIndex(
-      (template) => template.id === selectedTemplateId.value,
-    ),
-  ),
+const activeCategoryId = computed(
+  () =>
+    strategyCategories.value.find((category) =>
+      category.strategies.some(
+        (template) => template.id === selectedTemplateId.value,
+      ),
+    )?.id ??
+    strategyCategories.value[0]?.id ??
+    "",
 );
 const strategySummary = computed(
   () =>
@@ -103,9 +138,25 @@ function selectTemplate(id: string) {
   legs.value = buildStrategyLegs(id);
 }
 
-function changeTemplate(event: { detail: { value: number | string } }) {
-  const template = visibleStrategies.value[Number(event.detail.value)];
-  if (template) selectTemplate(template.id);
+function toggleCategory(id: string) {
+  openCategoryId.value = openCategoryId.value === id ? null : id;
+}
+
+function selectCategoryTemplate(id: string) {
+  selectTemplate(id);
+  openCategoryId.value = null;
+}
+
+function categoryMenuAlignment(index: number) {
+  if (index <= 1) return "left";
+  if (index >= strategyCategories.value.length - 2) return "right";
+  return "center";
+}
+
+function categoryIconColor(id: string) {
+  if (activeCategoryId.value === id) return "#ffffff";
+  if (openCategoryId.value === id) return "#0e6f5c";
+  return "#52605c";
 }
 
 function changeQuantity(leg: StrategyLeg, delta: number) {
@@ -162,33 +213,74 @@ function goSimulate() {
         <view class="strategy-toolbar">
           <view class="strategy-picker-block">
             <text class="strategy-picker-block__label">策略分类</text>
-            <picker
-              class="strategy-picker"
-              mode="selector"
-              :range="strategyOptions"
-              :value="selectedTemplateIndex"
-              @change="changeTemplate"
-            >
-              <button
-                class="strategy-picker__button"
-                :data-strategy-options="strategyOptions.join('|')"
+            <view
+              v-if="openCategoryId"
+              class="strategy-menu-dismiss"
+              @tap="openCategoryId = null"
+            />
+            <view class="strategy-categories">
+              <view
+                v-for="(category, index) in strategyCategories"
+                :key="category.id"
+                class="strategy-category"
               >
-                <view class="strategy-picker__copy">
-                  <view class="strategy-picker__title-row">
-                    <text class="strategy-picker__title">
-                      {{ selectedTemplate?.shortName }}
-                    </text>
-                    <text class="strategy-picker__tag">
-                      {{ selectedTemplate?.tag }}
-                    </text>
+                <button
+                  class="strategy-category__trigger"
+                  :class="{
+                    'strategy-category__trigger--active': activeCategoryId === category.id,
+                    'strategy-category__trigger--open': openCategoryId === category.id,
+                  }"
+                  @tap="toggleCategory(category.id)"
+                >
+                  <text>{{ category.label }}</text>
+                  <view
+                    class="strategy-category__chevron"
+                    :class="{ 'strategy-category__chevron--open': openCategoryId === category.id }"
+                  >
+                    <AppIcon
+                      name="chevronDown"
+                      :size="12"
+                      :color="categoryIconColor(category.id)"
+                    />
                   </view>
-                  <text class="strategy-picker__meta">
-                    {{ selectedTemplate?.name }} · 共 {{ visibleStrategies.length }} 个策略
-                  </text>
+                </button>
+                <view
+                  v-if="openCategoryId === category.id"
+                  class="strategy-category-menu"
+                  :class="`strategy-category-menu--${categoryMenuAlignment(index)}`"
+                >
+                  <view class="strategy-category-menu__head">
+                    <text>{{ category.label }}</text>
+                    <text>{{ category.strategies.length }} 个策略</text>
+                  </view>
+                  <button
+                    v-for="template in category.strategies"
+                    :key="template.id"
+                    class="strategy-category-menu__item"
+                    :class="{
+                      'strategy-category-menu__item--selected':
+                        selectedTemplateId === template.id,
+                    }"
+                    @tap="selectCategoryTemplate(template.id)"
+                  >
+                    <view class="strategy-category-menu__copy">
+                      <text class="strategy-category-menu__name">
+                        {{ template.name }}
+                      </text>
+                      <text class="strategy-category-menu__meta">
+                        {{ template.risk }} · {{ template.tag }}
+                      </text>
+                    </view>
+                    <AppIcon
+                      v-if="selectedTemplateId === template.id"
+                      name="check"
+                      :size="14"
+                      color="#0e6f5c"
+                    />
+                  </button>
                 </view>
-                <AppIcon name="chevronDown" :size="16" color="#52605c" />
-              </button>
-            </picker>
+              </view>
+            </view>
           </view>
           <view class="strategy-spot">
             <text class="strategy-spot__label">标的现价</text>
@@ -521,19 +613,23 @@ function goSimulate() {
 }
 
 .strategy-toolbar {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 14px;
+  z-index: 12;
 }
 
 .strategy-picker-block {
+  position: relative;
   display: flex;
   min-width: 0;
-  flex: 0 1 340px;
+  flex: 1;
   flex-direction: column;
   gap: 5px;
+  z-index: 30;
 }
 
 .strategy-picker-block__label {
@@ -541,64 +637,136 @@ function goSimulate() {
   font-size: 9px;
 }
 
-.strategy-picker {
-  width: 100%;
+.strategy-menu-dismiss {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
 }
 
-.strategy-picker__button {
+.strategy-categories {
+  position: relative;
   display: flex;
-  width: 100%;
-  min-height: 52px;
+  min-width: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 6px;
+  z-index: 30;
+}
+
+.strategy-category {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.strategy-category__trigger {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--surface);
-  text-align: left;
-}
-
-.strategy-picker__copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.strategy-picker__title-row {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 7px;
-}
-
-.strategy-picker__title {
-  overflow: hidden;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.strategy-picker__tag {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--teal-wash);
-  color: var(--teal);
-  font-size: 8px;
+  color: var(--ink-soft);
+  font-size: 10px;
   font-weight: 650;
   white-space: nowrap;
 }
 
-.strategy-picker__meta {
-  margin-top: 2px;
+.strategy-category__trigger--active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.strategy-category__trigger--open:not(.strategy-category__trigger--active) {
+  border-color: #9bc9bb;
+  background: var(--teal-wash);
+  color: var(--teal);
+}
+
+.strategy-category__chevron {
+  display: flex;
+  transition: transform 150ms ease;
+}
+
+.strategy-category__chevron--open {
+  transform: rotate(180deg);
+}
+
+.strategy-category-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  width: 232px;
   overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 16px 36px rgba(23, 33, 30, 0.14);
+  z-index: 40;
+}
+
+.strategy-category-menu--left {
+  left: 0;
+}
+
+.strategy-category-menu--center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.strategy-category-menu--right {
+  right: 0;
+}
+
+.strategy-category-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.strategy-category-menu__head text:first-child {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.strategy-category-menu__item {
+  display: flex;
+  width: 100%;
+  min-height: 43px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+
+.strategy-category-menu__item--selected {
+  background: var(--teal-wash);
+}
+
+.strategy-category-menu__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.strategy-category-menu__name {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 680;
+}
+
+.strategy-category-menu__meta {
+  margin-top: 1px;
   color: var(--muted-light);
   font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .strategy-spot {
@@ -1186,6 +1354,16 @@ function goSimulate() {
 
   .strategy-picker-block {
     flex-basis: auto;
+  }
+
+  .strategy-categories {
+    gap: 5px;
+  }
+
+  .strategy-category__trigger {
+    min-height: 30px;
+    padding: 0 7px;
+    font-size: 9px;
   }
 
   .strategy-spot {
