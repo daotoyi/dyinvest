@@ -3,16 +3,12 @@ import { computed } from "vue";
 import AppIcon from "../../components/AppIcon.vue";
 import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
-import { strategyTemplates } from "../../data/strategies";
 import { useLearningProgress } from "../../composables/useLearningProgress";
 import { usePaperAccount } from "../../composables/usePaperAccount";
 import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
 import { formatMoney, formatPercent } from "../../domain/format";
-import {
-  EXPERIENCE_LABELS,
-  RISK_LABELS,
-} from "../../domain/user";
+import { RISK_LABELS } from "../../domain/user";
 
 const { completedCount, progress, reset: resetLearning } = useLearningProgress();
 const {
@@ -30,7 +26,7 @@ const {
   preferences,
   logout,
 } = useAuth();
-const { visibleLessons, visibleStrategies } = useContentSettings();
+const { visibleLessons } = useContentSettings();
 
 const level = computed(() => {
   if (preferences.value) return RISK_LABELS[preferences.value.riskLevel];
@@ -41,15 +37,6 @@ const level = computed(() => {
 const avatarLetter = computed(
   () => displayName.value.trim().slice(0, 1) || "研",
 );
-const defaultStrategyName = computed(() => {
-  const id = preferences.value?.defaultStrategyId;
-  return (
-    visibleStrategies.value.find((template) => template.id === id)?.name ??
-    strategyTemplates.find((template) => template.id === id)?.name ??
-    "牛市看涨价差"
-  );
-});
-
 function openLive() {
   uni.navigateTo({ url: "/pages/live/index" });
 }
@@ -157,33 +144,6 @@ function showDisclosure() {
           </view>
         </view>
 
-        <view class="account-strip" :class="{ 'account-strip--guest': !isLoggedIn }">
-          <view class="account-strip__icon">
-            <AppIcon
-              :name="isLoggedIn ? 'settings' : 'userPlus'"
-              :size="20"
-              :color="isLoggedIn ? '#0e6f5c' : '#946617'"
-            />
-          </view>
-          <view class="account-strip__copy">
-            <text class="account-strip__title">
-              {{ isLoggedIn ? "账户与偏好设置" : "登录或注册本地账户" }}
-            </text>
-            <text class="account-strip__desc">
-              {{ isLoggedIn
-                ? `${EXPERIENCE_LABELS[preferences?.experience ?? "beginner"]} · 默认策略 ${defaultStrategyName}`
-                : "保存昵称、风险偏好、默认策略和下单数量" }}
-            </text>
-          </view>
-          <button
-            class="button-secondary account-strip__button"
-            @tap="isLoggedIn ? openSettings() : openAuth()"
-          >
-            <text>{{ isLoggedIn ? "管理配置" : "登录 / 注册" }}</text>
-            <AppIcon name="chevronRight" :size="14" color="#17211e" />
-          </button>
-        </view>
-
         <view class="profile-stats">
           <view class="profile-stat card">
             <view class="profile-stat__head">
@@ -216,17 +176,6 @@ function showDisclosure() {
             </text>
           </view>
 
-          <button class="profile-stat profile-stat--link card" @tap="openLive">
-            <view class="profile-stat__head">
-              <view class="profile-stat__icon profile-stat__icon--amber">
-                <AppIcon name="link" :size="19" color="#946617" />
-              </view>
-              <AppIcon name="chevronRight" :size="15" color="#7b8783" />
-            </view>
-            <text class="profile-stat__label">实盘接入</text>
-            <text class="profile-stat__value profile-stat__value--text">待合作券商</text>
-            <text class="profile-stat__change">查看正式接入要求</text>
-          </button>
         </view>
 
         <view class="profile-sections">
@@ -250,7 +199,7 @@ function showDisclosure() {
             <button
               v-if="!isLoggedIn"
               class="settings-row"
-              @tap="openAuth('register')"
+              @tap="openAuth()"
             >
               <view class="settings-row__icon">
                 <AppIcon name="userPlus" :size="18" color="#0e6f5c" />
@@ -336,7 +285,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>道元期权 · DAO OPTIONS</text>
           <view class="profile-footer__dot" />
-          <text>v0.3.7</text>
+          <text>v0.3.8</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>
@@ -471,65 +420,9 @@ function showDisclosure() {
   font-weight: 650;
 }
 
-.account-strip {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 13px 15px;
-  border: 1px solid #cfe5de;
-  border-radius: 8px;
-  background: var(--teal-wash);
-}
-
-.account-strip--guest {
-  border-color: #ead8b5;
-  background: #fdf9f1;
-}
-
-.account-strip__icon {
-  display: flex;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.account-strip__copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.account-strip__title {
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.account-strip__desc {
-  margin-top: 2px;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-strip__button {
-  min-height: 34px;
-  padding: 0 10px;
-  flex: 0 0 auto;
-  font-size: 9px;
-}
-
 .profile-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 14px;
 }
@@ -566,10 +459,6 @@ function showDisclosure() {
   background: var(--blue-wash);
 }
 
-.profile-stat__icon--amber {
-  background: var(--amber-wash);
-}
-
 .profile-stat__meta {
   color: var(--muted-light);
   font-family: var(--font-mono);
@@ -587,10 +476,6 @@ function showDisclosure() {
   color: var(--ink);
   font-size: 22px;
   font-weight: 680;
-}
-
-.profile-stat__value--text {
-  font-size: 15px;
 }
 
 .profile-stat__change {
@@ -611,10 +496,6 @@ function showDisclosure() {
   height: 100%;
   border-radius: 2px;
   background: var(--teal);
-}
-
-.profile-stat--link:active {
-  background: #fbfcfb;
 }
 
 .profile-sections {
@@ -756,25 +637,12 @@ function showDisclosure() {
     height: 38px;
   }
 
-  .account-strip {
-    align-items: flex-start;
-  }
-
-  .account-strip__button {
-    padding: 0 8px;
-  }
-
   .profile-stats {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .profile-stat {
     min-height: 150px;
-  }
-
-  .profile-stat--link {
-    grid-column: 1 / -1;
-    min-height: 130px;
   }
 
   .profile-sections {

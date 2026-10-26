@@ -88,7 +88,10 @@ test.describe("application smoke flow", () => {
     expect(storedCredentials).not.toContain("password123");
     expect(storedCredentials).toContain("passwordHash");
 
-    await page.locator(".account-strip__button").click();
+    await page
+      .locator(".settings-row")
+      .filter({ hasText: "账户与偏好设置" })
+      .click();
     await page.waitForURL(/pages\/settings\/index/);
     await page.locator(".settings-input input").fill("测试用户新");
     await page.locator(".risk-choice").filter({ hasText: "C4 · 积极型" }).click();
@@ -108,7 +111,10 @@ test.describe("application smoke flow", () => {
     await page.getByText("退出登录", { exact: true }).last().click();
     await expect(page.locator(".profile-identity__name")).toHaveText("访客");
 
-    await page.locator(".account-strip__button").click();
+    await page
+      .locator(".settings-row")
+      .filter({ hasText: "登录或注册" })
+      .click();
     await page.waitForURL(/pages\/auth\/index/);
     const loginInputs = page.locator(".auth-input input");
     await loginInputs.nth(0).fill("testuser01");
