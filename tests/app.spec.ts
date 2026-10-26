@@ -304,4 +304,28 @@ test.describe("mobile layout", () => {
     expect(menu?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((menu?.x ?? 0) + (menu?.width ?? 0)).toBeLessThanOrEqual(320);
   });
+
+  test("mobile account summary uses a horizontal layout", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile-chromium");
+    const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+    test.skip(!adminPassword, "requires DEFAULT_ADMIN_PASSWORD");
+
+    await page.goto("/#/pages/auth/index");
+    const inputs = page.locator(".auth-input input");
+    await inputs.nth(0).fill("admin");
+    await inputs.nth(1).fill(adminPassword as string);
+    await page.getByText("登录账户", { exact: true }).click();
+    await page.waitForURL(/pages\/profile\/index/);
+    await page.goto("/#/pages/settings/index");
+
+    const summary = await page.locator(".account-summary").boundingBox();
+    const identity = await page
+      .locator(".account-summary__identity")
+      .boundingBox();
+    expect(summary?.width ?? 0).toBeGreaterThan(330);
+    expect(summary?.height ?? 999).toBeLessThan(180);
+    expect(identity?.height ?? 999).toBeLessThan(80);
+  });
 });

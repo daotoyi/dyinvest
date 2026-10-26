@@ -285,7 +285,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>道元期权 · DAO OPTIONS</text>
           <view class="profile-footer__dot" />
-          <text>v0.3.8</text>
+          <text>v0.3.9</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>

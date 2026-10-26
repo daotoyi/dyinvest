@@ -270,23 +270,29 @@ function save() {
 
           <view class="settings-aside">
             <view class="account-summary card">
-              <view class="account-summary__avatar">
-                {{ draft.nickname.slice(0, 1) || "U" }}
-              </view>
-              <text class="account-summary__name">{{ draft.nickname || "未命名用户" }}</text>
-              <text class="account-summary__username">{{ accountIdentifier }}</text>
-              <view class="account-summary__meta">
-                <view class="chip">{{ RISK_LABELS[draft.riskLevel] }}</view>
-                <view class="chip">{{ EXPERIENCE_LABELS[draft.experience] }}</view>
+              <view class="account-summary__identity">
+                <view class="account-summary__avatar">
+                  {{ draft.nickname.slice(0, 1) || "U" }}
+                </view>
+                <view class="account-summary__copy">
+                  <text class="account-summary__name">{{ draft.nickname || "未命名用户" }}</text>
+                  <text class="account-summary__username">{{ accountIdentifier }}</text>
+                </view>
+                <view class="account-summary__meta">
+                  <view class="chip">{{ RISK_LABELS[draft.riskLevel] }}</view>
+                  <view class="chip">{{ EXPERIENCE_LABELS[draft.experience] }}</view>
+                </view>
               </view>
               <view class="account-summary__line" />
-              <view class="account-summary__row">
-                <text>默认策略</text>
-                <text>{{ selectedStrategy?.shortName }}</text>
-              </view>
-              <view class="account-summary__row">
-                <text>默认数量</text>
-                <text class="mono">{{ draft.defaultOrderQuantity }} 张</text>
+              <view class="account-summary__details">
+                <view class="account-summary__row">
+                  <text>默认策略</text>
+                  <text>{{ selectedStrategy?.shortName }}</text>
+                </view>
+                <view class="account-summary__row">
+                  <text>默认数量</text>
+                  <text class="mono">{{ draft.defaultOrderQuantity }} 张</text>
+                </view>
               </view>
             </view>
 
@@ -611,6 +617,13 @@ function save() {
   padding: 20px;
 }
 
+.account-summary__identity {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
 .account-summary__avatar {
   display: flex;
   width: 54px;
@@ -622,6 +635,13 @@ function save() {
   color: var(--teal);
   font-size: 20px;
   font-weight: 750;
+}
+
+.account-summary__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
 }
 
 .account-summary__name {
@@ -650,6 +670,10 @@ function save() {
   height: 1px;
   margin: 17px 0 7px;
   background: var(--line);
+}
+
+.account-summary__details {
+  width: 100%;
 }
 
 .account-summary__row {
@@ -754,8 +778,7 @@ function save() {
 
   .settings-aside {
     order: -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: block;
   }
 
   .settings-card {
@@ -771,7 +794,47 @@ function save() {
   }
 
   .account-summary {
-    min-height: 230px;
+    min-height: 0;
+  }
+
+  .account-summary__identity {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .account-summary__avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+  }
+
+  .account-summary__copy {
+    align-items: flex-start;
+  }
+
+  .account-summary__name {
+    margin-top: 0;
+    font-size: 14px;
+  }
+
+  .account-summary__meta {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 0;
+  }
+
+  .account-summary__line {
+    margin: 12px 0 2px;
+  }
+
+  .account-summary__details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
   }
 
   .data-scope {
