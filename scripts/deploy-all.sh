@@ -46,7 +46,7 @@ ssh "$WEB_TARGET" \
 curl -fsS --max-time 15 "$WEB_URL" >/dev/null
 /Applications/wechatwebdevtools.app/Contents/MacOS/cli cloud functions info \
   --env "$CLOUD_ENV" \
-  --names phoneLogin \
+  --names userData \
   --project "$ROOT_DIR/dist/build/mp-weixin" \
   --lang zh
 

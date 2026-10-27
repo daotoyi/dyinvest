@@ -9,6 +9,7 @@ import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
 import { formatMoney, formatPercent } from "../../domain/format";
 import { RISK_LABELS } from "../../domain/user";
+import { APP_VERSION } from "../../config/runtime";
 
 const { completedCount, progress, reset: resetLearning } = useLearningProgress();
 const {
@@ -285,7 +286,7 @@ function showDisclosure() {
         <view class="profile-footer">
           <text>道元期权 · DAO OPTIONS</text>
           <view class="profile-footer__dot" />
-          <text>v0.3.9</text>
+          <text>v{{ APP_VERSION }}</text>
           <view class="profile-footer__dot" />
           <text>本地演示版</text>
         </view>

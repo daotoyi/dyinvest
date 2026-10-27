@@ -5,6 +5,7 @@ import { lessons } from "../../data/lessons";
 import { strategyTemplates } from "../../data/strategies";
 import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
+import { APP_VERSION } from "../../config/runtime";
 import {
   EXPERIENCE_LABELS,
   RISK_LABELS,
@@ -465,7 +466,7 @@ function restoreContentDefaults() {
               </view>
               <view class="admin-system__row">
                 <text>应用版本</text>
-                <text class="mono">v0.3.9</text>
+                <text class="mono">v{{ APP_VERSION }}</text>
               </view>
               <view class="admin-system__row">
                 <text>小程序 AppID</text>

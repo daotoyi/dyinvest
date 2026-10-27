@@ -4,10 +4,6 @@ import { onLoad } from "@dcloudio/uni-app";
 import AppIcon from "../../components/AppIcon.vue";
 import { useAuth } from "../../composables/useAuth";
 import {
-  WECHAT_CLOUD_ENV,
-  WECHAT_PHONE_LOGIN_FUNCTION,
-} from "../../config/runtime";
-import {
   EXPERIENCE_LABELS,
   RISK_LABELS,
 } from "../../domain/user";
@@ -19,7 +15,7 @@ const {
   preferences,
   hasAccounts,
   login,
-  loginWithVerifiedPhone,
+  phoneLogin,
   register,
   logout,
 } = useAuth();
@@ -35,7 +31,6 @@ const agreed = ref(false);
 const errorMessage = ref("");
 const submitting = ref(false);
 const phoneLoading = ref(false);
-let cloudInitialized = false;
 
 interface PhoneNumberEvent {
   detail?: {
@@ -44,26 +39,11 @@ interface PhoneNumberEvent {
   };
 }
 
-interface PhoneLoginCloudResult {
-  ok?: boolean;
-  phoneNumber?: string;
-  code?: string;
-  message?: string;
-}
-
 interface PhoneLoginFailure {
   code?: string;
   errCode?: string | number;
   errMsg?: string;
   message?: string;
-}
-
-interface WechatCloudApi {
-  init(options: { env?: string; traceUser?: boolean }): void;
-  callFunction(options: {
-    name: string;
-    data: { code: string };
-  }): Promise<{ result?: unknown }>;
 }
 
 onLoad((query) => {
@@ -134,43 +114,9 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
     return;
   }
 
-  const cloud = (
-    globalThis as typeof globalThis & {
-      wx?: { cloud?: WechatCloudApi };
-    }
-  ).wx?.cloud;
-  if (!cloud) {
-    errorMessage.value = "当前环境不支持微信云开发手机号登录";
-    return;
-  }
-
   phoneLoading.value = true;
   try {
-    if (!cloudInitialized) {
-      if (!WECHAT_CLOUD_ENV) {
-        throw new Error(
-          "未配置微信云开发环境 ID，请使用 VITE_WECHAT_CLOUD_ENV 重新构建",
-        );
-      }
-      cloud.init({
-        env: WECHAT_CLOUD_ENV,
-        traceUser: true,
-      });
-      cloudInitialized = true;
-    }
-
-    const response = await cloud.callFunction({
-      name: WECHAT_PHONE_LOGIN_FUNCTION,
-      data: { code: detail.code },
-    });
-    const result = response.result as PhoneLoginCloudResult | undefined;
-    if (!result?.ok || !result.phoneNumber) {
-      const code = result?.code ? `[${result.code}] ` : "";
-      throw new Error(
-        `${code}${result?.message || "手机号验证失败，请确认云函数和环境配置"}`,
-      );
-    }
-    loginWithVerifiedPhone(result.phoneNumber);
+    await phoneLogin({ code: detail.code });
     finishAuth("手机号登录成功");
   } catch (error) {
     const failure = error as PhoneLoginFailure;
@@ -187,7 +133,7 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
   }
 }
 
-function submit() {
+async function submit() {
   errorMessage.value = "";
   if (!username.value.trim()) {
     errorMessage.value = "请输入用户名";
@@ -215,10 +161,10 @@ function submit() {
   submitting.value = true;
   try {
     if (mode.value === "login") {
-      login(username.value, password.value);
+      await login(username.value, password.value);
       finishAuth("登录成功");
     } else {
-      register({
+      await register({
         username: username.value,
         password: password.value,
         nickname: nickname.value,
@@ -241,8 +187,9 @@ function handleLogout() {
     confirmColor: "#cf5547",
     success: (result) => {
       if (!result.confirm) return;
-      logout();
-      uni.showToast({ title: "已退出登录", icon: "success" });
+      void logout().then(() => {
+        uni.showToast({ title: "已退出登录", icon: "success" });
+      });
     },
   });
 }

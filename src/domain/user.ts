@@ -1,5 +1,9 @@
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 export type RiskLevel = "C2" | "C3" | "C4";
+export type AppLanguage = "en" | "zh-CN";
+export type UserRole = "user" | "admin";
+export type UserStatus = "active" | "disabled";
+export type UserDatasetType = "learning" | "paper";
 
 export interface UserPreferences {
   nickname: string;
@@ -7,23 +11,41 @@ export interface UserPreferences {
   riskLevel: RiskLevel;
   defaultStrategyId: string;
   defaultOrderQuantity: number;
+  language: AppLanguage;
   updatedAt: string;
 }
 
-export interface LocalUserRecord {
+export interface CloudUser {
   id: string;
   username: string;
   usernameNormalized: string;
   nickname: string;
   authMethod?: "local" | "wechat_phone";
   phone?: string;
-  role?: "user" | "admin";
-  status?: "active" | "disabled";
-  salt: string;
-  passwordHash: string;
-  hashIterations: number;
+  role: UserRole;
+  status: UserStatus;
   createdAt: string;
+  updatedAt?: string;
+  preferences?: UserPreferences;
 }
+
+/** @deprecated Use CloudUser. Kept while older settings migrate. */
+export type LocalUserRecord = CloudUser;
+
+export interface CloudSession {
+  token: string;
+  expiresAt: string;
+  user: CloudUser;
+}
+
+export interface UserDataset<T = unknown> {
+  type: UserDatasetType;
+  payload: T | null;
+  revision: number;
+  updatedAt: string | null;
+}
+
+export type UserDatasets = Record<UserDatasetType, UserDataset>;
 
 export function maskPhone(phone?: string) {
   if (!phone || phone.length < 7) return "";
@@ -49,6 +71,7 @@ export function defaultPreferences(nickname: string): UserPreferences {
     riskLevel: "C3",
     defaultStrategyId: "bull-call-spread",
     defaultOrderQuantity: 1,
+    language: "en",
     updatedAt: new Date().toISOString(),
   };
 }

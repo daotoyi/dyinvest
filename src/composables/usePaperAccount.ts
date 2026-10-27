@@ -11,6 +11,10 @@ import type {
 } from "../domain/types";
 import { round } from "../domain/optionMath";
 import { optionDisplayName } from "../data/options";
+import {
+  pushUserDataset,
+  registerDatasetHandler,
+} from "../services/userDataSync";
 
 const STORAGE_KEY = "options-lab-paper-v2";
 const INITIAL_EQUITY = 200000;
@@ -82,14 +86,65 @@ function loadState(): PaperAccountState {
 }
 
 const state = reactive<PaperAccountState>(loadState());
+let applyingCloudState = false;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function isValidPaperState(value: unknown): value is PaperAccountState {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<PaperAccountState>;
+  return (
+    typeof candidate.cash === "number" &&
+    typeof candidate.realizedPnl === "number" &&
+    Array.isArray(candidate.positions) &&
+    Array.isArray(candidate.orders) &&
+    Array.isArray(candidate.equityHistory)
+  );
+}
+
+function persist() {
+  try {
+    uni.setStorageSync(STORAGE_KEY, JSON.parse(JSON.stringify(state)));
+  } catch {
+    // The cloud copy remains authoritative when local storage is unavailable.
+  }
+}
+
+function scheduleCloudPush(delay = 800) {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void pushUserDataset("paper", JSON.parse(JSON.stringify(state))).catch(
+      () => undefined,
+    );
+  }, delay);
+}
 
 watch(
   state,
   (value) => {
-    uni.setStorageSync(STORAGE_KEY, JSON.parse(JSON.stringify(value)));
+    persist();
+    if (!applyingCloudState) scheduleCloudPush();
   },
   { deep: true },
 );
+
+registerDatasetHandler("paper", (payload) => {
+  applyingCloudState = true;
+  if (isValidPaperState(payload)) {
+    Object.assign(state, {
+      cash: payload.cash,
+      realizedPnl: Number(payload.realizedPnl ?? 0),
+      positions: payload.positions,
+      orders: payload.orders,
+      equityHistory: payload.equityHistory,
+    });
+    persist();
+  }
+  setTimeout(() => {
+    applyingCloudState = false;
+    if (payload === null) scheduleCloudPush(0);
+  }, 0);
+});
 
 function currentPremium(position: PaperPosition) {
   return findQuoteById(position.quoteId)?.premium ?? position.avgPremium;

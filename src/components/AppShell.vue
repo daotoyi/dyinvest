@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import AppIcon from "./AppIcon.vue";
+import { APP_VERSION } from "../config/runtime";
 
 interface Props {
   secondary?: boolean;
@@ -73,7 +74,7 @@ function go(path: string) {
         <view class="rail-foot">
           <text>演示行情</text>
           <view class="rail-foot__dot" />
-          <text>v0.3.9</text>
+          <text>v{{ APP_VERSION }}</text>
         </view>
       </view>
     </view>

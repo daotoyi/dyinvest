@@ -1,142 +1,187 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  DEFAULT_ADMIN_ID,
-  DEFAULT_ADMIN_PASSWORD_HASH,
-  DEFAULT_ADMIN_USERNAME,
-} from "../config/defaultAdmin";
+import type { CloudUser, UserDatasets } from "../domain/user";
+import type { CloudSessionPayload } from "../services/userData";
 
-describe("verified phone login", () => {
+const userDataApi = vi.hoisted(() => ({
+  register: vi.fn(),
+  login: vi.fn(),
+  phoneLogin: vi.fn(),
+  restore: vi.fn(),
+  logout: vi.fn(),
+  updatePreferences: vi.fn(),
+  pull: vi.fn(),
+  push: vi.fn(),
+  getContent: vi.fn(),
+  listUsers: vi.fn(),
+  setUserRole: vi.fn(),
+  setUserStatus: vi.fn(),
+  pushContent: vi.fn(),
+}));
+
+vi.mock("../services/userData", () => ({
+  userDataApi,
+}));
+
+function makeUser(overrides: Partial<CloudUser> = {}): CloudUser {
+  return {
+    id: "user-1",
+    username: "13800138000",
+    usernameNormalized: "13800138000",
+    nickname: "微信用户8000",
+    authMethod: "wechat_phone",
+    phone: "13800138000",
+    role: "user",
+    status: "active",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function emptyDatasets(): UserDatasets {
+  const stamp = "2026-01-01T00:00:00.000Z";
+  return {
+    learning: { type: "learning", payload: null, revision: 0, updatedAt: stamp },
+    paper: { type: "paper", payload: null, revision: 0, updatedAt: stamp },
+  };
+}
+
+function makeSession(user: CloudUser): CloudSessionPayload {
+  return {
+    token: "token-1",
+    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    user,
+    datasets: emptyDatasets(),
+  };
+}
+
+describe("cloud auth", () => {
   const storage = new Map<string, unknown>();
-  const defaultAdminPassword = (
-    globalThis as typeof globalThis & {
-      process?: { env?: Record<string, string | undefined> };
-    }
-  ).process?.env?.DEFAULT_ADMIN_PASSWORD;
 
   beforeEach(() => {
     storage.clear();
     vi.resetModules();
+    vi.clearAllMocks();
     vi.stubGlobal("uni", {
-      getStorageSync(key: string) {
-        return storage.get(key);
-      },
-      setStorageSync(key: string, value: unknown) {
+      getStorageSync: (key: string) => storage.get(key),
+      setStorageSync: (key: string, value: unknown) => {
         storage.set(key, value);
       },
+      removeStorageSync: (key: string) => {
+        storage.delete(key);
+      },
     });
   });
 
-  it("creates a local account for a verified WeChat phone number", async () => {
+  it("creates a cloud session for verified phone login", async () => {
+    const user = makeUser();
+    userDataApi.phoneLogin.mockResolvedValue(makeSession(user));
+
     const { useAuth } = await import("./useAuth");
     const auth = useAuth();
-    const user = auth.loginWithVerifiedPhone("13800138000");
+    const result = await auth.phoneLogin({ code: "wx-code-1" });
 
-    expect(user.authMethod).toBe("wechat_phone");
-    expect(user.phone).toBe("13800138000");
+    expect(result?.authMethod).toBe("wechat_phone");
+    expect(result?.phone).toBe("13800138000");
     expect(auth.isLoggedIn.value).toBe(true);
     expect(auth.accountIdentifier.value).toBe("138****8000");
-    expect(auth.preferences.value?.nickname).toBe("微信用户8000");
-    expect(user.role).toBe("user");
+    expect(auth.state.currentUser?.role).toBe("user");
   });
 
-  it("reuses the same account for the same verified phone number", async () => {
-    const { useAuth } = await import("./useAuth");
-    const auth = useAuth();
-    const first = auth.loginWithVerifiedPhone("13800138000");
-    auth.logout();
-    const second = auth.loginWithVerifiedPhone("13800138000");
-
-    expect(second.id).toBe(first.id);
-    expect(auth.state.users).toHaveLength(2);
-  });
-
-  it("rejects an invalid phone number from the verification layer", async () => {
-    const { useAuth } = await import("./useAuth");
-    const auth = useAuth();
-
-    expect(() => auth.loginWithVerifiedPhone("12345")).toThrow(
-      "微信返回的手机号格式不正确",
-    );
-  });
-
-  it("seeds exactly one default admin without overriding persisted users", async () => {
-    const { useAuth } = await import("./useAuth");
-    const auth = useAuth();
-    const admin = auth.state.users.find(
-      (user) => user.usernameNormalized === DEFAULT_ADMIN_USERNAME,
+  it("propagates login failures as localized errors", async () => {
+    userDataApi.phoneLogin.mockRejectedValue(
+      new Error("该账户已被管理员禁用"),
     );
 
-    expect(admin).toMatchObject({
-      id: DEFAULT_ADMIN_ID,
-      role: "admin",
-      status: "active",
-      authMethod: "local",
-      passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
-    });
-    expect(auth.state.users).toHaveLength(1);
-
-    vi.resetModules();
-    const reloaded = (await import("./useAuth")).useAuth();
-    expect(
-      reloaded.state.users.filter(
-        (user) => user.usernameNormalized === DEFAULT_ADMIN_USERNAME,
-      ),
-    ).toHaveLength(1);
-  });
-
-  it("keeps phone accounts non-admin and blocks duplicate admin registration", async () => {
     const { useAuth } = await import("./useAuth");
     const auth = useAuth();
-    const user = auth.loginWithVerifiedPhone("13800138000");
 
-    expect(user.role).toBe("user");
-    expect(auth.isAdmin.value).toBe(false);
-    expect(() => auth.setUserRole(user.id, "admin")).toThrow(
-      "当前账户没有管理权限",
-    );
-    expect(() =>
-      auth.register({
-        username: DEFAULT_ADMIN_USERNAME,
-        password: "not-in-source-control",
-        nickname: "重复管理员",
-      }),
-    ).toThrow("该用户名已存在");
-  });
-
-  it.runIf(Boolean(defaultAdminPassword))(
-    "authenticates the seeded admin and enables the management console",
-    async () => {
-      const { useAuth } = await import("./useAuth");
-      const auth = useAuth();
-      const admin = auth.login(
-        DEFAULT_ADMIN_USERNAME,
-        defaultAdminPassword as string,
-      );
-
-      expect(admin.id).toBe(DEFAULT_ADMIN_ID);
-      expect(admin.role).toBe("admin");
-      expect(auth.isAdmin.value).toBe(true);
-
-      const user = auth.loginWithVerifiedPhone("13900139000");
-      auth.login(DEFAULT_ADMIN_USERNAME, defaultAdminPassword as string);
-      auth.setUserRole(user.id, "admin");
-      expect(user.role).toBe("admin");
-      auth.setUserStatus(user.id, "disabled");
-      expect(user.status).toBe("disabled");
-      expect(() => auth.setUserRole(admin.id, "user")).toThrow(
-        "不能取消自己的管理员权限",
-      );
-    },
-  );
-
-  it("enforces account status for verified phone accounts", async () => {
-    const { useAuth } = await import("./useAuth");
-    const auth = useAuth();
-    const user = auth.loginWithVerifiedPhone("13900139000");
-    user.status = "disabled";
-
-    expect(() => auth.loginWithVerifiedPhone("13900139000")).toThrow(
+    await expect(auth.phoneLogin({ code: "wx-code-1" })).rejects.toThrow(
       "该账户已被管理员禁用",
+    );
+    expect(auth.isLoggedIn.value).toBe(false);
+  });
+
+  it("registers a local account and stores a session", async () => {
+    const user = makeUser({
+      id: "user-2",
+      username: "trader",
+      usernameNormalized: "trader",
+      authMethod: "local",
+      phone: undefined,
+      nickname: "Trader",
+    });
+    userDataApi.register.mockResolvedValue(makeSession(user));
+
+    const { useAuth } = await import("./useAuth");
+    const auth = useAuth();
+    const result = await auth.register({
+      username: "trader",
+      password: "secret",
+      nickname: "Trader",
+    });
+
+    expect(result?.username).toBe("trader");
+    expect(auth.accountIdentifier.value).toBe("@trader");
+  });
+
+  it("restore applies a persisted session and hydrates datasets", async () => {
+    const user = makeUser();
+    const { writeSession } = await import("../services/session");
+    writeSession({
+      token: "token-1",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      user,
+    });
+    userDataApi.restore.mockResolvedValue({
+      user,
+      datasets: emptyDatasets(),
+    });
+
+    const { useAuth } = await import("./useAuth");
+    const auth = useAuth();
+    const restored = await auth.restore();
+
+    expect(restored?.id).toBe("user-1");
+    expect(auth.isLoggedIn.value).toBe(true);
+  });
+
+  it("admin can change role and status through cloud operations", async () => {
+    const admin = makeUser({
+      id: "admin-1",
+      username: "admin",
+      usernameNormalized: "admin",
+      role: "admin",
+      authMethod: "local",
+      phone: undefined,
+      nickname: "Admin",
+    });
+    userDataApi.login.mockResolvedValue(makeSession(admin));
+    userDataApi.setUserRole.mockResolvedValue({
+      userId: "user-1",
+      role: "admin",
+    });
+    userDataApi.setUserStatus.mockResolvedValue({
+      userId: "user-1",
+      status: "disabled",
+    });
+
+    const { useAuth } = await import("./useAuth");
+    const auth = useAuth();
+    await auth.login("admin", "secret");
+    expect(auth.isAdmin.value).toBe(true);
+
+    await auth.setUserRole("user-1", "admin");
+    expect(userDataApi.setUserRole).toHaveBeenCalledWith(
+      "token-1",
+      "user-1",
+      "admin",
+    );
+
+    await auth.setUserStatus("user-1", "disabled");
+    expect(userDataApi.setUserStatus).toHaveBeenCalledWith(
+      "token-1",
+      "user-1",
+      "disabled",
     );
   });
 });

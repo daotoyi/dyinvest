@@ -1,5 +1,9 @@
-import { computed, reactive } from "vue";
+import { computed, reactive, watch } from "vue";
 import { useContentSettings } from "./useContentSettings";
+import {
+  pushUserDataset,
+  registerDatasetHandler,
+} from "../services/userDataSync";
 
 const STORAGE_KEY = "options-lab-learning-v1";
 
@@ -15,11 +19,49 @@ function loadCompleted() {
 const state = reactive({
   completedIds: loadCompleted(),
 });
+let applyingCloudState = false;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
 const { visibleLessons } = useContentSettings();
 
 function persist() {
-  uni.setStorageSync(STORAGE_KEY, [...state.completedIds]);
+  try {
+    uni.setStorageSync(STORAGE_KEY, [...state.completedIds]);
+  } catch {
+    // The cloud copy remains authoritative when local storage is unavailable.
+  }
 }
+
+function scheduleCloudPush(delay = 600) {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void pushUserDataset("learning", [...state.completedIds]).catch(() => undefined);
+  }, delay);
+}
+
+watch(
+  () => [...state.completedIds],
+  () => {
+    persist();
+    if (!applyingCloudState) scheduleCloudPush();
+  },
+  { flush: "sync" },
+);
+
+registerDatasetHandler("learning", (payload) => {
+  applyingCloudState = true;
+  if (Array.isArray(payload)) {
+    const next = payload.filter(
+      (item): item is string => typeof item === "string",
+    );
+    state.completedIds.splice(0, state.completedIds.length, ...next);
+  }
+  persist();
+  setTimeout(() => {
+    applyingCloudState = false;
+    if (payload === null) scheduleCloudPush(0);
+  }, 0);
+});
 
 export function useLearningProgress() {
   const completedCount = computed(() => state.completedIds.length);
@@ -36,13 +78,11 @@ export function useLearningProgress() {
   function complete(id: string) {
     if (!state.completedIds.includes(id)) {
       state.completedIds.push(id);
-      persist();
     }
   }
 
   function reset() {
     state.completedIds.splice(0);
-    persist();
   }
 
   return {

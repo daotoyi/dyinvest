@@ -9,8 +9,8 @@ import { useContentSettings } from "../../composables/useContentSettings";
 
 const { completedCount, progress, isCompleted } = useLearningProgress();
 const { visibleLessons, isLessonEnabled } = useContentSettings();
-const filter = ref<"全部" | "基础" | "进阶">("全部");
-const filters: Array<"全部" | "基础" | "进阶"> = ["全部", "基础", "进阶"];
+const filter = ref<"全部" | "基础" | "进阶" | "高阶">("全部");
+const filters: Array<"全部" | "基础" | "进阶" | "高阶"> = ["全部", "基础", "进阶", "高阶"];
 
 const filteredLessons = computed(() =>
   filter.value === "全部"
@@ -29,7 +29,7 @@ const foundationProgress = computed(() => {
     : 0;
 });
 const advancedProgress = computed(() => {
-  const group = visibleLessons.value.filter((lesson) => lesson.level === "进阶");
+  const group = visibleLessons.value.filter((lesson) => lesson.level === "进阶" || lesson.level === "高阶");
   return group.length
     ? group.filter((lesson) => isCompleted(lesson.id)).length / group.length
     : 0;
@@ -90,7 +90,7 @@ function openLesson(id: string) {
               <text class="progress-stat__value mono">{{ Math.round(foundationProgress * 100) }}%</text>
             </view>
             <view class="progress-stat">
-              <text class="progress-stat__label">进阶课程</text>
+              <text class="progress-stat__label">高阶课程</text>
               <text class="progress-stat__value mono">{{ Math.round(advancedProgress * 100) }}%</text>
             </view>
             <view class="progress-stat progress-stat--hint">

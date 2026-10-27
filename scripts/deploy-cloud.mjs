@@ -16,7 +16,7 @@ const cloudEnv = (
   fileEnv.VITE_WECHAT_CLOUD_ENV ||
   ""
 ).trim();
-const functionPath = join(projectDir, "cloudfunctions", "phoneLogin");
+const functionPath = join(projectDir, "cloudfunctions", "userData");
 
 if (!cloudEnv) {
   console.error(
@@ -26,7 +26,7 @@ if (!cloudEnv) {
 }
 if (!existsSync(join(functionPath, "index.js"))) {
   console.error(
-    `未找到构建后的 phoneLogin 云函数：${functionPath}。请先运行 npm run build:mp-weixin。`,
+    `未找到构建后的 userData 云函数：${functionPath}。请先运行 npm run build:mp-weixin。`,
   );
   process.exit(1);
 }

@@ -20,11 +20,13 @@ const {
 } = useAuth();
 const { visibleStrategies } = useContentSettings();
 const preferredStrategyId = preferences.value?.defaultStrategyId;
-const initialStrategyId = visibleStrategies.value.some(
-  (template) => template.id === preferredStrategyId,
-)
-  ? preferredStrategyId
-  : visibleStrategies.value[0]?.id ?? "bull-call-spread";
+const initialStrategyId =
+  (preferredStrategyId &&
+  visibleStrategies.value.some(
+    (template) => template.id === preferredStrategyId,
+  )
+    ? preferredStrategyId
+    : visibleStrategies.value[0]?.id) ?? "bull-call-spread";
 
 const draft = ref({
   nickname: preferences.value?.nickname ?? "",
@@ -35,6 +37,7 @@ const draft = ref({
 });
 const errorMessage = ref("");
 const savedMessage = ref("");
+const saving = ref(false);
 const experienceOptions: ExperienceLevel[] = [
   "beginner",
   "intermediate",
@@ -72,15 +75,21 @@ function changeQuantity(delta: number) {
   );
 }
 
-function save() {
+async function save() {
   errorMessage.value = "";
   savedMessage.value = "";
+  if (!isLoggedIn.value) {
+    errorMessage.value = "请先登录，再保存账户配置。";
+    openAuth();
+    return;
+  }
   if (draft.value.nickname.trim().length < 2) {
     errorMessage.value = "昵称至少需要 2 个字符";
     return;
   }
+  saving.value = true;
   try {
-    const saved = updatePreferences({
+    const saved = await updatePreferences({
       nickname: draft.value.nickname.trim(),
       experience: draft.value.experience,
       riskLevel: draft.value.riskLevel,
@@ -88,11 +97,13 @@ function save() {
       defaultOrderQuantity: draft.value.defaultOrderQuantity,
     });
     draft.value.nickname = saved.nickname;
-    savedMessage.value = "配置已保存到当前本地账户";
+    savedMessage.value = "配置已保存到当前账户";
     uni.showToast({ title: "配置已保存", icon: "success" });
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : "保存失败，请稍后重试";
+  } finally {
+    saving.value = false;
   }
 }
 </script>
