@@ -1399,6 +1399,33 @@ export function getAppLocale(): AppLanguage {
   return i18n.global.locale.value === "zh-CN" ? "zh-CN" : "en";
 }
 
+function interpolate(
+  message: string,
+  values: Record<string, unknown>,
+) {
+  let result = message;
+  if (values.count !== undefined && result.includes("|")) {
+    const forms = result.split("|").map((item) => item.trim());
+    const count = Number(values.count);
+    result = forms[count === 1 ? 0 : 1] ?? forms[0] ?? result;
+  }
+  return result.replace(/\{(\w+)\}/g, (match, name: string) => {
+    const value = values[name];
+    return value === undefined || value === null ? match : String(value);
+  });
+}
+
 export function translate(key: string, values?: Record<string, unknown>) {
-  return values ? i18n.global.t(key, values) : i18n.global.t(key);
+  let message: string;
+  try {
+    message = String(values ? i18n.global.t(key, values) : i18n.global.t(key));
+  } catch {
+    message = key;
+  }
+  // Mini Program builds resolve vue-i18n to the runtime-only bundle, so
+  // interpolate and pluralize manually when the compiler is unavailable.
+  if (values && (message.includes("{") || message.includes("|"))) {
+    message = interpolate(message, values);
+  }
+  return message;
 }
