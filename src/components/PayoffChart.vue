@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getCurrentInstance, nextTick, onMounted, watch } from "vue";
+import { getAppLocale, translate } from "../i18n";
 
 export interface PayoffPoint {
   price: number;
@@ -23,7 +24,10 @@ const canvasId = `payoff-${instance?.uid ?? Date.now()}`;
 
 function niceMoney(value: number) {
   const abs = Math.abs(value);
-  if (abs >= 10000) return `${(value / 10000).toFixed(1)}万`;
+  if (abs >= 10000) {
+    const suffix = getAppLocale() === "en" ? "w" : "万";
+    return `${(value / 10000).toFixed(1)}${suffix}`;
+  }
   if (abs >= 1000) return `${(value / 1000).toFixed(1)}k`;
   return `${Math.round(value)}`;
 }
@@ -99,7 +103,7 @@ function draw() {
         ctx.setFillStyle("#6d7a76");
         ctx.setFontSize(11);
         ctx.setTextAlign("center");
-        ctx.fillText("现价", spotX, pad.top - 4);
+        ctx.fillText(translate("strategy.spot"), spotX, pad.top - 4);
       }
 
       if (current !== expiry) {
@@ -143,10 +147,10 @@ function draw() {
       ctx.setFontSize(10);
       ctx.setFillStyle("#8e9a96");
       ctx.setTextAlign("left");
-      ctx.fillText("到期损益", pad.left, height - 1);
+      ctx.fillText(translate("strategy.expiryPnl"), pad.left, height - 1);
       if (current !== expiry) {
         ctx.setFillStyle("#7896b0");
-        ctx.fillText("当前价值", pad.left + 62, height - 1);
+        ctx.fillText(translate("strategy.currentValue"), pad.left + 62, height - 1);
       }
       ctx.draw();
     })

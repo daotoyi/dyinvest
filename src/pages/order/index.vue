@@ -6,23 +6,25 @@ import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import {
   CONTRACT_MULTIPLIER,
-  DEMO_EXPIRY_LABEL,
-  DEMO_SNAPSHOT_LABEL,
+  demoExpiryLabel,
+  demoSnapshotLabel,
   findQuote,
   optionChain,
   optionDisplayName,
   underlying,
+  underlyingDisplayName,
 } from "../../data/options";
 import {
   buildStrategyLegs,
   calculateStrategyMetrics,
   elapsedDaysLabel,
-  strategyTemplates,
+  localizedStrategyTemplates,
 } from "../../data/strategies";
 import type { OptionSide, OptionType } from "../../domain/types";
 import { formatMoney, formatPercent, formatSignedMoney, formatVol } from "../../domain/format";
 import { usePaperAccount } from "../../composables/usePaperAccount";
 import { useAuth } from "../../composables/useAuth";
+import { translate } from "../../i18n";
 
 const mode = ref<"single" | "strategy">("single");
 const strategyId = ref("bull-call-spread");
@@ -60,8 +62,9 @@ onLoad((query) => {
 const selectedQuote = computed(() => findQuote(type.value, strike.value));
 const selectedTemplate = computed(
   () =>
-    strategyTemplates.find((template) => template.id === strategyId.value) ??
-    strategyTemplates[1],
+    localizedStrategyTemplates.value.find(
+      (template) => template.id === strategyId.value,
+    ) ?? localizedStrategyTemplates.value[1],
 );
 const strategyLegs = computed(() =>
   mode.value === "strategy" ? buildStrategyLegs(strategyId.value) : [],
@@ -101,7 +104,7 @@ const strategyCashEffect = computed(() => {
   );
 });
 const submitLabel = computed(() =>
-  mode.value === "single" ? "确认模拟成交" : "执行组合模拟成交",
+  mode.value === "single" ? translate("order.submit") : translate("order.simulate"),
 );
 const canSubmit = computed(() => {
   if (mode.value === "strategy") {
@@ -140,7 +143,10 @@ function adjustQuantity(delta: number) {
 function submit() {
   if (!canSubmit.value) {
     uni.showToast({
-      title: mode.value === "single" ? "可用资金不足" : "组合保证金不足",
+      title:
+        mode.value === "single"
+          ? translate("order.insufficientFunds")
+          : translate("order.insufficientMargin"),
       icon: "none",
     });
     return;
@@ -148,13 +154,21 @@ function submit() {
 
   const content =
     mode.value === "strategy"
-      ? `${selectedTemplate.value?.name ?? "策略组合"}，${strategyLegs.value.length} 条腿。将写入本地模拟账户。`
-      : `${side.value === "buy" ? "买入" : "卖出"} ${quantity.value} 张 ${optionDisplayName(type.value, strike.value)}，限价 ${limitPrice.value.toFixed(4)}。`;
+      ? translate("order.strategyContent", {
+          name: selectedTemplate.value?.name ?? translate("order.strategyCombo"),
+          legs: strategyLegs.value.length,
+        })
+      : translate("order.singleContent", {
+          side: translate(side.value === "buy" ? "common.buy" : "common.sell"),
+          qty: quantity.value,
+          contract: optionDisplayName(type.value, strike.value),
+          price: limitPrice.value.toFixed(4),
+        });
 
   uni.showModal({
-    title: "确认模拟成交",
+    title: translate("order.confirmTitle"),
     content,
-    confirmText: "确认成交",
+    confirmText: translate("order.confirmAction"),
     confirmColor: "#0e6f5c",
     success: (result) => {
       if (!result.confirm) return;
@@ -162,7 +176,7 @@ function submit() {
         if (mode.value === "strategy") {
           placeStrategy(
             strategyLegs.value,
-            selectedTemplate.value?.name ?? "策略组合",
+            selectedTemplate.value?.name ?? translate("order.strategyCombo"),
           );
         } else {
           placeOrder({
@@ -173,13 +187,13 @@ function submit() {
             price: limitPrice.value,
           });
         }
-        uni.showToast({ title: "模拟成交完成", icon: "success" });
+        uni.showToast({ title: translate("order.success"), icon: "success" });
         setTimeout(() => {
           uni.redirectTo({ url: "/pages/practice/index" });
         }, 500);
       } catch (error) {
         uni.showToast({
-          title: error instanceof Error ? error.message : "模拟下单失败",
+          title: error instanceof Error ? error.message : translate("order.failed"),
           icon: "none",
         });
       }
@@ -194,14 +208,14 @@ function submit() {
       <view class="page-content order-page">
         <PageHeader
           back
-          :title="mode === 'single' ? '模拟下单' : '策略模拟下单'"
-          eyebrow="Paper order"
-          subtitle="订单仅写入本地模拟账户，不会发送至任何券商或交易所。"
+          :title="mode === 'single' ? $t('order.title') : $t('order.strategyTitle')"
+          :eyebrow="$t('order.title')"
+          :subtitle="$t('order.subtitle')"
         >
           <template #action>
             <view class="simulation-chip">
               <view class="simulation-chip__dot" />
-              <text>模拟环境</text>
+              <text>{{ $t("order.simulation") }}</text>
             </view>
           </template>
         </PageHeader>
@@ -212,8 +226,8 @@ function submit() {
               <view class="underlying-strip__identity">
                 <view class="underlying-strip__mark">300</view>
                 <view>
-                  <text class="underlying-strip__name">{{ underlying.name }}</text>
-                  <text class="underlying-strip__meta">{{ underlying.symbol }} · {{ DEMO_SNAPSHOT_LABEL }}</text>
+                  <text class="underlying-strip__name">{{ underlyingDisplayName() }}</text>
+                  <text class="underlying-strip__meta">{{ underlying.symbol }} · {{ demoSnapshotLabel() }}</text>
                 </view>
               </view>
               <view class="underlying-strip__quote">
@@ -224,26 +238,26 @@ function submit() {
 
             <view class="order-ticket card">
               <view class="order-ticket__head">
-                <text class="order-ticket__title">订单参数</text>
-                <text class="order-ticket__meta">1 张 = {{ CONTRACT_MULTIPLIER.toLocaleString() }} 份 ETF</text>
+                <text class="order-ticket__title">{{ $t("order.orderParams") }}</text>
+                <text class="order-ticket__meta">{{ $t("order.oneContract", { multiplier: CONTRACT_MULTIPLIER.toLocaleString() }) }}</text>
               </view>
 
               <view class="order-field">
-                <text class="order-field__label">交易方向</text>
+                <text class="order-field__label">{{ $t("order.side") }}</text>
                 <view class="segmented order-field__segmented">
                   <button
                     class="segmented__item order-side order-side--buy"
                     :class="{ 'order-side--active': side === 'buy' }"
                     @tap="changeSide('buy')"
                   >
-                    买入开仓
+                    {{ $t("order.buyOpen") }}
                   </button>
                   <button
                     class="segmented__item order-side order-side--sell"
                     :class="{ 'order-side--active': side === 'sell' }"
                     @tap="changeSide('sell')"
                   >
-                    卖出开仓
+                    {{ $t("order.sellOpen") }}
                   </button>
                 </view>
               </view>
@@ -251,21 +265,21 @@ function submit() {
               <view class="order-divider" />
 
               <view class="order-field">
-                <text class="order-field__label">期权类型</text>
+                <text class="order-field__label">{{ $t("order.optionType") }}</text>
                 <view class="segmented order-field__segmented">
                   <button
                     class="segmented__item"
                     :class="{ 'segmented__item--active': type === 'call' }"
                     @tap="changeType('call')"
                   >
-                    认购 Call
+                    {{ $t("common.call") }}
                   </button>
                   <button
                     class="segmented__item"
                     :class="{ 'segmented__item--active': type === 'put' }"
                     @tap="changeType('put')"
                   >
-                    认沽 Put
+                    {{ $t("common.put") }}
                   </button>
                 </view>
               </view>
@@ -274,8 +288,8 @@ function submit() {
 
               <view class="order-field order-field--inline">
                 <view>
-                  <text class="order-field__label">行权价</text>
-                  <text class="order-field__hint">{{ DEMO_EXPIRY_LABEL }} 到期 · 剩余 {{ elapsedDaysLabel() }} 天</text>
+                  <text class="order-field__label">{{ $t("common.strike") }}</text>
+                  <text class="order-field__hint">{{ $t("order.expiryHint", { date: demoExpiryLabel(), days: elapsedDaysLabel() }) }}</text>
                 </view>
                 <picker
                   :range="strikes.map((item) => item.toFixed(3))"
@@ -291,24 +305,24 @@ function submit() {
 
               <view class="quote-inline">
                 <view class="quote-inline__item">
-                  <text>最新价</text>
+                  <text>{{ $t("practice.lastPrice") }}</text>
                   <text class="mono">{{ currentPrice.toFixed(4) }}</text>
                 </view>
                 <view class="quote-inline__item">
-                  <text>隐含波动率</text>
+                  <text>{{ $t("order.impliedVol") }}</text>
                   <text class="mono">{{ formatVol(selectedQuote?.iv ?? 0) }}</text>
                 </view>
                 <view class="quote-inline__item">
-                  <text>成交量</text>
+                  <text>{{ $t("order.volume") }}</text>
                   <text class="mono">{{ (selectedQuote?.volume ?? 0).toLocaleString() }}</text>
                 </view>
               </view>
 
               <view class="order-field">
                 <view class="order-field__label-row">
-                  <text class="order-field__label">委托价格</text>
+                  <text class="order-field__label">{{ $t("order.orderPrice") }}</text>
                   <button class="order-field__quick" @tap="priceText = currentPrice.toFixed(4)">
-                    <text>使用最新价</text>
+                    <text>{{ $t("order.useLast") }}</text>
                   </button>
                 </view>
                 <view class="price-input">
@@ -319,12 +333,12 @@ function submit() {
                     type="digit"
                     :placeholder="currentPrice.toFixed(4)"
                   />
-                  <text class="price-input__unit">/ 份</text>
+                  <text class="price-input__unit">{{ $t("order.perShare") }}</text>
                 </view>
               </view>
 
               <view class="order-field">
-                <text class="order-field__label">委托数量</text>
+                <text class="order-field__label">{{ $t("order.orderQuantity") }}</text>
                 <view class="quantity-row">
                   <view class="quantity-row__stepper">
                     <button class="quantity-row__button" @tap="adjustQuantity(-1)">
@@ -335,7 +349,7 @@ function submit() {
                       <AppIcon name="plus" :size="15" color="#52605c" />
                     </button>
                   </view>
-                  <text class="quantity-row__unit">张合约</text>
+                  <text class="quantity-row__unit">{{ $t("order.contracts") }}</text>
                 </view>
               </view>
             </view>
@@ -344,47 +358,47 @@ function submit() {
           <view class="order-aside">
             <view class="order-summary card">
               <view class="order-summary__head">
-                <text class="order-summary__title">订单预览</text>
+                <text class="order-summary__title">{{ $t("order.orderPreview") }}</text>
                 <view
                   class="chip"
                   :class="side === 'buy' ? 'chip--red' : 'chip--teal'"
                 >
-                  {{ side === "buy" ? "买方" : "卖方" }}
+                  {{ side === "buy" ? $t("order.buyer") : $t("order.seller") }}
                 </view>
               </view>
               <view class="summary-contract">
                 <text class="summary-contract__name">{{ optionDisplayName(type, strike) }}</text>
-                <text class="summary-contract__meta">{{ DEMO_EXPIRY_LABEL }} · {{ type === "call" ? "认购" : "认沽" }}</text>
+                <text class="summary-contract__meta">{{ demoExpiryLabel() }} · {{ type === "call" ? $t("common.call") : $t("common.put") }}</text>
               </view>
               <view class="summary-list">
                 <view class="summary-row">
-                  <text>权利金</text>
+                  <text>{{ $t("common.premium") }}</text>
                   <text class="mono">{{ formatMoney(grossAmount) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>费用估算</text>
+                  <text>{{ $t("order.feeEstimate") }}</text>
                   <text class="mono">{{ formatMoney(feeEstimate) }}</text>
                 </view>
                 <view class="summary-row summary-row--strong">
-                  <text>{{ side === "buy" ? "预计支出" : "预计收入" }}</text>
+                  <text>{{ side === "buy" ? $t("order.estimatedDebit") : $t("order.estimatedCredit") }}</text>
                   <text class="mono">{{ formatMoney(Math.abs(cashEffect)) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>保证金估算</text>
+                  <text>{{ $t("order.marginEstimate") }}</text>
                   <text class="mono">{{ formatMoney(marginEstimate) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>可用资金</text>
+                  <text>{{ $t("common.availableCash") }}</text>
                   <text class="mono">{{ formatMoney(availableCash, 0) }}</text>
                 </view>
               </view>
               <view class="summary-risk">
                 <AppIcon name="alert" :size="15" color="#946617" />
                 <text v-if="side === 'buy'">
-                  买方最大损失以已支付权利金为限，但到期可能全部损失。
+                  {{ $t("order.buyerRisk") }}
                 </text>
                 <text v-else>
-                  卖方需承担履约义务，理论风险可能显著大于收取的权利金。
+                  {{ $t("order.sellerRisk") }}
                 </text>
               </view>
               <button
@@ -395,22 +409,22 @@ function submit() {
                 <AppIcon name="check" :size="16" color="#ffffff" />
                 <text>{{ submitLabel }}</text>
               </button>
-              <text class="order-summary__note">仅影响本地模拟账户</text>
+              <text class="order-summary__note">{{ $t("order.localOnly") }}</text>
             </view>
 
             <view class="order-guide card">
-              <text class="order-guide__title">初版撮合规则</text>
+              <text class="order-guide__title">{{ $t("order.matchingRules") }}</text>
               <view class="order-guide__item">
                 <text class="mono">01</text>
-                <text>按输入限价立即成交，不模拟排队。</text>
+                <text>{{ $t("order.rule1") }}</text>
               </view>
               <view class="order-guide__item">
                 <text class="mono">02</text>
-                <text>固定手续费 ¥2.50 / 腿，不计滑点。</text>
+                <text>{{ $t("order.rule2") }}</text>
               </view>
               <view class="order-guide__item">
                 <text class="mono">03</text>
-                <text>保证金按现货名义价值 15% 演示估算。</text>
+                <text>{{ $t("order.rule3") }}</text>
               </view>
             </view>
           </view>
@@ -423,7 +437,7 @@ function submit() {
                 <AppIcon name="chart" :size="23" color="#0e6f5c" />
               </view>
               <view class="strategy-order-head__copy">
-                <text class="eyebrow">Strategy order</text>
+                <text class="eyebrow">{{ $t("order.strategyOrder") }}</text>
                 <text class="strategy-order-head__title">{{ selectedTemplate?.name }}</text>
                 <text class="strategy-order-head__desc">{{ selectedTemplate?.thesis }}</text>
               </view>
@@ -432,8 +446,8 @@ function submit() {
 
             <view class="strategy-leg-list card">
               <view class="strategy-leg-list__head">
-                <text>策略腿</text>
-                <text>{{ DEMO_EXPIRY_LABEL }} · {{ DEMO_SNAPSHOT_LABEL }}</text>
+                <text>{{ $t("order.strategyLegs") }}</text>
+                <text>{{ demoExpiryLabel() }} · {{ demoSnapshotLabel() }}</text>
               </view>
               <view
                 v-for="leg in strategyLegs"
@@ -444,14 +458,14 @@ function submit() {
                   class="strategy-leg-side"
                   :class="leg.side === 'buy' ? 'strategy-leg-side--buy' : 'strategy-leg-side--sell'"
                 >
-                  {{ leg.side === "buy" ? "买" : "卖" }}
+                  {{ leg.side === "buy" ? $t("common.buy") : $t("common.sell") }}
                 </view>
                 <view class="strategy-leg-row__copy">
                   <text class="strategy-leg-row__title">
-                    {{ leg.type === "call" ? "认购" : "认沽" }} {{ leg.strike.toFixed(3) }}
+                    {{ leg.type === "call" ? $t("common.call") : $t("common.put") }} {{ leg.strike.toFixed(3) }}
                   </text>
                   <text class="strategy-leg-row__meta">
-                    {{ leg.quantity }} 张 · IV {{ formatVol(leg.iv) }}
+                    {{ leg.quantity }} {{ $t("order.contracts") }} · IV {{ formatVol(leg.iv) }}
                   </text>
                 </view>
                 <text class="mono strategy-leg-row__premium">{{ leg.premium.toFixed(4) }}</text>
@@ -464,30 +478,30 @@ function submit() {
             <view class="strategy-scenario-card card">
               <view class="section-heading">
                 <view class="section-heading__copy">
-                  <text class="section-heading__title">执行前检查</text>
-                  <text class="section-heading__meta">组合模拟会按策略腿一次性记账</text>
+                  <text class="section-heading__title">{{ $t("order.executionChecks") }}</text>
+                  <text class="section-heading__meta">{{ $t("order.executionMeta") }}</text>
                 </view>
               </view>
               <view class="execution-checks">
                 <view class="execution-check">
                   <AppIcon name="circleCheck" :size="17" color="#0e6f5c" />
                   <view>
-                    <text>风险边界已计算</text>
-                    <text>到期损益、盈亏平衡与 Greeks 已生成</text>
+                    <text>{{ $t("order.checkRiskTitle") }}</text>
+                    <text>{{ $t("order.checkRiskDesc") }}</text>
                   </view>
                 </view>
                 <view class="execution-check">
                   <AppIcon name="circleCheck" :size="17" color="#0e6f5c" />
                   <view>
-                    <text>模拟资金已校验</text>
-                    <text>组合权利金与示例保证金将从本地账户扣除</text>
+                    <text>{{ $t("order.checkCashTitle") }}</text>
+                    <text>{{ $t("order.checkCashDesc") }}</text>
                   </view>
                 </view>
                 <view class="execution-check">
                   <AppIcon name="alert" :size="17" color="#946617" />
                   <view>
-                    <text>未校验真实盘口</text>
-                    <text>初版不模拟单腿成交失败和组合保证金优惠</text>
+                    <text>{{ $t("order.checkBookTitle") }}</text>
+                    <text>{{ $t("order.checkBookDesc") }}</text>
                   </view>
                 </view>
               </view>
@@ -497,49 +511,49 @@ function submit() {
           <view class="strategy-order-aside">
             <view class="order-summary card">
               <view class="order-summary__head">
-                <text class="order-summary__title">组合预览</text>
-                <view class="chip chip--teal">{{ strategyLegs.length }} 条腿</view>
+                <text class="order-summary__title">{{ $t("order.comboPreview") }}</text>
+                <view class="chip chip--teal">{{ $t("order.legsCount", { count: strategyLegs.length }) }}</view>
               </view>
               <view class="summary-list">
                 <view class="summary-row">
-                  <text>净权利金</text>
+                  <text>{{ $t("home.netPremium") }}</text>
                   <text class="mono">
-                    {{ (strategyMetrics?.netPremium ?? 0) >= 0 ? "支出" : "收入" }}
+                    {{ (strategyMetrics?.netPremium ?? 0) >= 0 ? $t("strategy.debit") : $t("strategy.creditAmount") }}
                     {{ formatMoney(Math.abs(strategyMetrics?.netPremium ?? 0), 0) }}
                   </text>
                 </view>
                 <view class="summary-row">
-                  <text>最大收益</text>
+                  <text>{{ $t("home.maxProfit") }}</text>
                   <text class="mono positive">
-                    {{ Number.isFinite(strategyMetrics?.maxProfit) ? formatMoney(strategyMetrics?.maxProfit ?? 0, 0) : "无上限" }}
+                    {{ Number.isFinite(strategyMetrics?.maxProfit) ? formatMoney(strategyMetrics?.maxProfit ?? 0, 0) : $t("home.unlimited") }}
                   </text>
                 </view>
                 <view class="summary-row">
-                  <text>最大亏损</text>
+                  <text>{{ $t("home.maxLoss") }}</text>
                   <text class="mono negative">
-                    {{ Number.isFinite(strategyMetrics?.maxLoss) ? formatMoney(strategyMetrics?.maxLoss ?? 0, 0) : "风险很大" }}
+                    {{ Number.isFinite(strategyMetrics?.maxLoss) ? formatMoney(strategyMetrics?.maxLoss ?? 0, 0) : $t("home.highRisk") }}
                   </text>
                 </view>
                 <view class="summary-row">
-                  <text>费用估算</text>
+                  <text>{{ $t("order.feeEstimate") }}</text>
                   <text class="mono">{{ formatMoney(strategyLegs.length * feeEstimate) }}</text>
                 </view>
                 <view class="summary-row summary-row--strong">
-                  <text>预计资金变化</text>
+                  <text>{{ $t("order.expectedCashChange") }}</text>
                   <text class="mono">{{ formatSignedMoney(strategyCashEffect) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>保证金估算</text>
+                  <text>{{ $t("order.marginEstimate") }}</text>
                   <text class="mono">{{ formatMoney(strategyMargin, 0) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>可用资金</text>
+                  <text>{{ $t("common.availableCash") }}</text>
                   <text class="mono">{{ formatMoney(availableCash, 0) }}</text>
                 </view>
               </view>
               <view class="summary-risk">
                 <AppIcon name="info" :size="15" color="#946617" />
-                <text>本操作不连接券商，不会产生真实委托或资金变动。</text>
+                <text>{{ $t("order.noBroker") }}</text>
               </view>
               <button
                 class="button-primary button-primary--teal order-summary__button"
@@ -549,7 +563,7 @@ function submit() {
                 <AppIcon name="check" :size="16" color="#ffffff" />
                 <text>{{ submitLabel }}</text>
               </button>
-              <text class="order-summary__note">仅影响本地模拟账户</text>
+              <text class="order-summary__note">{{ $t("order.localOnly") }}</text>
             </view>
           </view>
         </view>

@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import AppIcon from "../../components/AppIcon.vue";
-import { lessons } from "../../data/lessons";
-import { strategyTemplates } from "../../data/strategies";
+import { localizedLessons } from "../../data/lessons";
+import { localizedStrategyTemplates } from "../../data/strategies";
 import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
 import { APP_VERSION } from "../../config/runtime";
 import {
-  EXPERIENCE_LABELS,
-  RISK_LABELS,
   maskPhone,
   type LocalUserRecord,
 } from "../../domain/user";
+import { translate } from "../../i18n";
+import { experienceLabel, riskLabel } from "../../composables/useLabels";
+import { usePageTitle } from "../../composables/usePageTitle";
+import { useLocale } from "../../composables/useLocale";
 
 type AdminTab = "overview" | "users" | "content" | "announcement";
+usePageTitle("admin.title");
+const { locale, setLocale } = useLocale();
 
 const {
   state: authState,
@@ -47,15 +51,19 @@ const announcementError = ref("");
 
 const tabs: Array<{
   id: AdminTab;
-  label: string;
+  labelKey: string;
   icon: string;
-  meta: string;
+  metaKey: string;
 }> = [
-  { id: "overview", label: "数据概览", icon: "chart", meta: "Overview" },
-  { id: "users", label: "用户管理", icon: "user", meta: "Users" },
-  { id: "content", label: "内容发布", icon: "layers", meta: "Content" },
-  { id: "announcement", label: "运营公告", icon: "bell", meta: "Notice" },
+  { id: "overview", labelKey: "admin.dashboard", icon: "chart", metaKey: "admin.dashboard" },
+  { id: "users", labelKey: "admin.users", icon: "user", metaKey: "admin.users" },
+  { id: "content", labelKey: "admin.content", icon: "layers", metaKey: "admin.content" },
+  { id: "announcement", labelKey: "admin.announcement", icon: "bell", metaKey: "admin.announcement" },
 ];
+const activeTabLabel = computed(() => {
+  const tab = tabs.find((item) => item.id === activeTab.value);
+  return tab ? translate(tab.labelKey) : "";
+});
 
 const adminCount = computed(
   () => authState.users.filter((user) => user.role === "admin").length,
@@ -64,10 +72,10 @@ const activeUserCount = computed(
   () => authState.users.filter((user) => user.status !== "disabled").length,
 );
 const disabledLessonCount = computed(
-  () => lessons.length - visibleLessons.value.length,
+  () => localizedLessons.value.length - visibleLessons.value.length,
 );
 const disabledStrategyCount = computed(
-  () => strategyTemplates.length - visibleStrategies.value.length,
+  () => localizedStrategyTemplates.value.length - visibleStrategies.value.length,
 );
 const filteredUsers = computed(() => {
   const keyword = userSearch.value.trim().toLowerCase();
@@ -100,12 +108,16 @@ function userAccount(user: LocalUserRecord) {
 
 function userRisk(user: LocalUserRecord) {
   const preferences = getUserPreferences(user.id);
-  return preferences ? RISK_LABELS[preferences.riskLevel] : "未配置";
+  return preferences
+    ? riskLabel(preferences.riskLevel)
+    : translate("admin.notConfigured");
 }
 
 function userExperience(user: LocalUserRecord) {
   const preferences = getUserPreferences(user.id);
-  return preferences ? EXPERIENCE_LABELS[preferences.experience] : "未配置";
+  return preferences
+    ? experienceLabel(preferences.experience)
+    : translate("admin.notConfigured");
 }
 
 function formatDate(value: string) {
@@ -128,25 +140,25 @@ function openAuth() {
 
 function toggleRole(user: LocalUserRecord) {
   if (user.id === currentUser.value?.id) {
-    uni.showToast({ title: "不能修改自己的角色", icon: "none" });
+    uni.showToast({ title: translate("admin.cannotChangeSelfRole"), icon: "none" });
     return;
   }
   const nextRole = user.role === "admin" ? "user" : "admin";
   uni.showModal({
-    title: nextRole === "admin" ? "设为管理员" : "移出管理员",
+    title: nextRole === "admin" ? translate("admin.setAdminTitle") : translate("admin.removeAdminTitle"),
     content:
       nextRole === "admin"
-        ? `确认让 ${user.nickname} 获得后台管理权限？`
-        : `确认移除 ${user.nickname} 的后台管理权限？`,
+        ? translate("admin.confirmGrant", { name: user.nickname })
+        : translate("admin.confirmRevoke", { name: user.nickname }),
     confirmColor: "#0e6f5c",
     success: (result) => {
       if (!result.confirm) return;
       try {
         setUserRole(user.id, nextRole);
-        uni.showToast({ title: "角色已更新", icon: "success" });
+        uni.showToast({ title: translate("admin.roleUpdated"), icon: "success" });
       } catch (error) {
         uni.showToast({
-          title: error instanceof Error ? error.message : "更新失败",
+          title: error instanceof Error ? error.message : translate("admin.updateFailed"),
           icon: "none",
         });
       }
@@ -156,25 +168,25 @@ function toggleRole(user: LocalUserRecord) {
 
 function toggleStatus(user: LocalUserRecord) {
   if (user.id === currentUser.value?.id) {
-    uni.showToast({ title: "不能禁用当前账户", icon: "none" });
+    uni.showToast({ title: translate("admin.cannotDisableSelf"), icon: "none" });
     return;
   }
   const nextStatus = user.status === "disabled" ? "active" : "disabled";
   uni.showModal({
-    title: nextStatus === "disabled" ? "禁用账户" : "恢复账户",
+    title: nextStatus === "disabled" ? translate("admin.disableAccountTitle") : translate("admin.enableAccountTitle"),
     content:
       nextStatus === "disabled"
-        ? `禁用后 ${user.nickname} 将无法登录，确认继续？`
-        : `恢复 ${user.nickname} 的登录权限？`,
+        ? translate("admin.confirmDisable", { name: user.nickname })
+        : translate("admin.confirmEnable", { name: user.nickname }),
     confirmColor: nextStatus === "disabled" ? "#cf5547" : "#0e6f5c",
     success: (result) => {
       if (!result.confirm) return;
       try {
         setUserStatus(user.id, nextStatus);
-        uni.showToast({ title: "账户状态已更新", icon: "success" });
+        uni.showToast({ title: translate("admin.statusUpdated"), icon: "success" });
       } catch (error) {
         uni.showToast({
-          title: error instanceof Error ? error.message : "更新失败",
+          title: error instanceof Error ? error.message : translate("admin.updateFailed"),
           icon: "none",
         });
       }
@@ -185,7 +197,7 @@ function toggleStatus(user: LocalUserRecord) {
 function toggleLesson(id: string) {
   const enabled = isLessonEnabled(id);
   if (enabled && visibleLessons.value.length <= 1) {
-    uni.showToast({ title: "至少保留一节已发布课程", icon: "none" });
+    uni.showToast({ title: translate("admin.keepOneLesson"), icon: "none" });
     return;
   }
   setLessonEnabled(id, !enabled);
@@ -194,7 +206,7 @@ function toggleLesson(id: string) {
 function toggleStrategy(id: string) {
   const enabled = isStrategyEnabled(id);
   if (enabled && visibleStrategies.value.length <= 1) {
-    uni.showToast({ title: "至少保留一个已启用策略", icon: "none" });
+    uni.showToast({ title: translate("admin.keepOneStrategy"), icon: "none" });
     return;
   }
   setStrategyEnabled(id, !enabled);
@@ -203,11 +215,11 @@ function toggleStrategy(id: string) {
 function saveAnnouncementConfig() {
   announcementError.value = "";
   if (announcementDraft.enabled && !announcementDraft.text.trim()) {
-    announcementError.value = "启用公告时必须填写公告内容";
+    announcementError.value = translate("admin.noticeContentRequired");
     return;
   }
   if (announcementDraft.enabled && !announcementDraft.title.trim()) {
-    announcementError.value = "启用公告时必须填写公告标题";
+    announcementError.value = translate("admin.noticeTitleRequired");
     return;
   }
   saveAnnouncement({
@@ -217,13 +229,13 @@ function saveAnnouncementConfig() {
   });
   announcementDraft.title = contentState.announcement.title;
   announcementDraft.text = contentState.announcement.text;
-  uni.showToast({ title: "公告已保存", icon: "success" });
+  uni.showToast({ title: translate("admin.noticeSaved"), icon: "success" });
 }
 
 function restoreContentDefaults() {
   uni.showModal({
-    title: "恢复内容默认设置",
-    content: "所有课程和策略将重新启用，运营公告将关闭。",
+    title: translate("admin.restoreDefaultsTitle"),
+    content: translate("admin.restoreDefaultsCopy"),
     confirmColor: "#cf5547",
     success: (result) => {
       if (!result.confirm) return;
@@ -231,7 +243,7 @@ function restoreContentDefaults() {
       announcementDraft.enabled = false;
       announcementDraft.title = contentState.announcement.title;
       announcementDraft.text = contentState.announcement.text;
-      uni.showToast({ title: "已恢复默认设置", icon: "success" });
+      uni.showToast({ title: translate("admin.defaultsRestored"), icon: "success" });
     },
   });
 }
@@ -243,12 +255,12 @@ function restoreContentDefaults() {
       <view class="admin-brand">
         <view class="admin-brand__mark">θ</view>
         <view>
-          <text class="admin-brand__name">道元期权</text>
-          <text class="admin-brand__meta">OPTIONS OPS</text>
+          <text class="admin-brand__name">{{ $t("app.name") }}</text>
+          <text class="admin-brand__meta">{{ $t("app.meta") }}</text>
         </view>
       </view>
 
-      <view class="admin-sidebar__label">管理工作区</view>
+      <view class="admin-sidebar__label">{{ $t("admin.workspace") }}</view>
       <view class="admin-nav">
         <button
           v-for="tab in tabs"
@@ -263,20 +275,36 @@ function restoreContentDefaults() {
             :color="activeTab === tab.id ? '#b9e5d8' : '#6e7d78'"
           />
           <view class="admin-nav__copy">
-            <text>{{ tab.label }}</text>
-            <text>{{ tab.meta }}</text>
+            <text>{{ $t(tab.labelKey) }}</text>
+            <text>{{ $t(tab.metaKey) }}</text>
           </view>
         </button>
       </view>
 
       <view class="admin-sidebar__foot">
+        <view class="admin-lang">
+          <button
+            class="admin-lang__item"
+            :class="{ 'admin-lang__item--active': locale === 'en' }"
+            @tap="setLocale('en')"
+          >
+            EN
+          </button>
+          <button
+            class="admin-lang__item"
+            :class="{ 'admin-lang__item--active': locale === 'zh-CN' }"
+            @tap="setLocale('zh-CN')"
+          >
+            中文
+          </button>
+        </view>
         <button class="admin-back" @tap="goBack">
           <AppIcon name="arrowLeft" :size="16" color="#9caeaa" />
-          <text>返回应用</text>
+          <text>{{ $t("admin.backToApp") }}</text>
         </button>
         <view class="admin-local-note">
           <AppIcon name="info" :size="14" color="#6e7d78" />
-          <text>本地演示管理台</text>
+          <text>{{ $t("admin.cloudConsole") }}</text>
         </view>
       </view>
     </view>
@@ -286,15 +314,15 @@ function restoreContentDefaults() {
         <view class="admin-gate__icon">
           <AppIcon name="lock" :size="27" color="#946617" />
         </view>
-        <text class="admin-gate__title">无法访问管理后台</text>
+        <text class="admin-gate__title">{{ $t("admin.accessDeniedTitle") }}</text>
         <text class="admin-gate__desc">
-          当前账户没有管理员权限。本地模式下，首个注册账户会自动成为管理员。
+          {{ $t("admin.accessDeniedDesc") }}
         </text>
         <button class="button-primary" @tap="openAuth">
           <AppIcon name="logOut" :size="16" color="#ffffff" />
-          <text>登录管理员账户</text>
+          <text>{{ $t("admin.loginAdmin") }}</text>
         </button>
-        <button class="button-quiet" @tap="goBack">返回个人中心</button>
+        <button class="button-quiet" @tap="goBack">{{ $t("admin.backProfile") }}</button>
       </view>
     </view>
 
@@ -303,11 +331,11 @@ function restoreContentDefaults() {
         <view class="admin-brand">
           <view class="admin-brand__mark">θ</view>
           <view>
-            <text class="admin-brand__name">道元期权管理台</text>
-            <text class="admin-brand__meta">OPTIONS OPS</text>
+            <text class="admin-brand__name">{{ $t("app.name") }} {{ $t("admin.brandSuffix") }}</text>
+            <text class="admin-brand__meta">{{ $t("app.meta") }}</text>
           </view>
         </view>
-        <button class="button-quiet" @tap="goBack">返回应用</button>
+        <button class="button-quiet" @tap="goBack">{{ $t("admin.backToApp") }}</button>
       </view>
 
       <view class="admin-mobile-tabs">
@@ -323,31 +351,31 @@ function restoreContentDefaults() {
             :size="16"
             :color="activeTab === tab.id ? '#0e6f5c' : '#7b8783'"
           />
-          <text>{{ tab.label }}</text>
+          <text>{{ $t(tab.labelKey) }}</text>
         </button>
       </view>
 
       <view class="admin-header">
         <view class="admin-header__copy">
-          <text class="eyebrow">Operations console</text>
+          <text class="eyebrow">{{ $t("admin.title") }}</text>
           <text class="admin-header__title">
-            {{ tabs.find((tab) => tab.id === activeTab)?.label }}
+            {{ activeTabLabel }}
           </text>
           <text class="admin-header__desc">
             {{ activeTab === "overview"
-              ? "查看本地用户、内容和运营状态。"
+              ? $t("admin.overviewDesc")
               : activeTab === "users"
-                ? "管理本地账户角色和可用状态。"
+                ? $t("admin.usersDesc")
                 : activeTab === "content"
-                  ? "控制课程和策略是否在前台展示。"
-                  : "统一维护首页运营公告。" }}
+                  ? $t("admin.contentDesc")
+                  : $t("admin.announcementDesc") }}
           </text>
         </view>
         <view class="admin-user">
           <view class="admin-user__avatar">{{ currentUser?.nickname.slice(0, 1) }}</view>
           <view>
             <text class="admin-user__name">{{ currentUser?.nickname }}</text>
-            <text class="admin-user__meta">{{ accountIdentifier }} · 管理员</text>
+            <text class="admin-user__meta">{{ accountIdentifier }} · {{ $t("admin.adminRole") }}</text>
           </view>
         </view>
       </view>
@@ -359,40 +387,40 @@ function restoreContentDefaults() {
               <view class="admin-metric__icon admin-metric__icon--teal">
                 <AppIcon name="user" :size="19" color="#0e6f5c" />
               </view>
-              <text class="admin-metric__trend">本地账户</text>
+              <text class="admin-metric__trend">{{ $t("admin.cloudAccounts") }}</text>
             </view>
             <text class="admin-metric__value mono">{{ activeUserCount }}</text>
-            <text class="admin-metric__label">可用用户 / 共 {{ authState.users.length }} 人</text>
+            <text class="admin-metric__label">{{ $t("admin.availableUsers", { total: authState.users.length }) }}</text>
           </view>
           <view class="admin-metric card">
             <view class="admin-metric__top">
               <view class="admin-metric__icon admin-metric__icon--blue">
                 <AppIcon name="shield" :size="19" color="#436d93" />
               </view>
-              <text class="admin-metric__trend">权限</text>
+              <text class="admin-metric__trend">{{ $t("admin.permissions") }}</text>
             </view>
             <text class="admin-metric__value mono">{{ adminCount }}</text>
-            <text class="admin-metric__label">管理员账户</text>
+            <text class="admin-metric__label">{{ $t("admin.adminAccounts") }}</text>
           </view>
           <view class="admin-metric card">
             <view class="admin-metric__top">
               <view class="admin-metric__icon admin-metric__icon--amber">
                 <AppIcon name="book" :size="19" color="#946617" />
               </view>
-              <text class="admin-metric__trend">{{ disabledLessonCount }} 下架</text>
+              <text class="admin-metric__trend">{{ disabledLessonCount }} {{ $t("admin.hidden") }}</text>
             </view>
             <text class="admin-metric__value mono">{{ visibleLessons.length }}</text>
-            <text class="admin-metric__label">已发布课程 / 共 {{ lessons.length }} 节</text>
+            <text class="admin-metric__label">{{ $t("admin.lessonsPublished", { total: localizedLessons.length }) }}</text>
           </view>
           <view class="admin-metric card">
             <view class="admin-metric__top">
               <view class="admin-metric__icon admin-metric__icon--teal">
                 <AppIcon name="activity" :size="19" color="#0e6f5c" />
               </view>
-              <text class="admin-metric__trend">{{ disabledStrategyCount }} 停用</text>
+              <text class="admin-metric__trend">{{ disabledStrategyCount }} {{ $t("admin.disabledLabel") }}</text>
             </view>
             <text class="admin-metric__value mono">{{ visibleStrategies.length }}</text>
-            <text class="admin-metric__label">启用策略 / 共 {{ strategyTemplates.length }} 个</text>
+            <text class="admin-metric__label">{{ $t("admin.strategiesEnabled", { total: localizedStrategyTemplates.length }) }}</text>
           </view>
         </view>
 
@@ -400,11 +428,11 @@ function restoreContentDefaults() {
           <view class="admin-panel card">
             <view class="admin-panel__head">
               <view>
-                <text class="admin-panel__title">最近用户</text>
-                <text class="admin-panel__meta">按创建时间排序</text>
+                <text class="admin-panel__title">{{ $t("admin.recentUsers") }}</text>
+                <text class="admin-panel__meta">{{ $t("admin.recentUsersMeta") }}</text>
               </view>
               <button class="button-quiet" @tap="activeTab = 'users'">
-                <text>全部用户</text>
+                <text>{{ $t("admin.allUsers") }}</text>
                 <AppIcon name="chevronRight" :size="14" color="#0e6f5c" />
               </button>
             </view>
@@ -423,7 +451,7 @@ function restoreContentDefaults() {
                   class="chip"
                   :class="user.role === 'admin' ? 'chip--blue' : ''"
                 >
-                  {{ user.role === "admin" ? "管理员" : "用户" }}
+                  {{ user.role === "admin" ? $t("admin.adminRole") : $t("admin.userRole") }}
                 </view>
                 <text class="admin-user-row__date">{{ formatDate(user.createdAt) }}</text>
               </view>
@@ -434,47 +462,47 @@ function restoreContentDefaults() {
             <view class="admin-panel card">
               <view class="admin-panel__head">
                 <view>
-                  <text class="admin-panel__title">运营公告</text>
-                  <text class="admin-panel__meta">首页展示状态</text>
+                  <text class="admin-panel__title">{{ $t("admin.announcement") }}</text>
+                  <text class="admin-panel__meta">{{ $t("admin.noticeStatus") }}</text>
                 </view>
                 <view
                   class="admin-status"
                   :class="{ 'admin-status--off': !contentState.announcement.enabled }"
                 >
-                  {{ contentState.announcement.enabled ? "展示中" : "已关闭" }}
+                  {{ contentState.announcement.enabled ? $t("admin.showing") : $t("admin.closed") }}
                 </view>
               </view>
               <text class="admin-announcement__title">{{ contentState.announcement.title }}</text>
               <text class="admin-announcement__text">{{ contentState.announcement.text }}</text>
               <button class="button-secondary admin-announcement__button" @tap="activeTab = 'announcement'">
                 <AppIcon name="sliders" :size="15" color="#17211e" />
-                <text>编辑公告</text>
+                <text>{{ $t("admin.editNotice") }}</text>
               </button>
             </view>
 
             <view class="admin-panel admin-system card">
               <view class="admin-panel__head">
                 <view>
-                  <text class="admin-panel__title">系统状态</text>
-                  <text class="admin-panel__meta">当前构建环境</text>
+                  <text class="admin-panel__title">{{ $t("admin.systemStatus") }}</text>
+                  <text class="admin-panel__meta">{{ $t("admin.buildEnvironment") }}</text>
                 </view>
                 <AppIcon name="circleCheck" :size="18" color="#0e6f5c" />
               </view>
               <view class="admin-system__row">
-                <text>运行模式</text>
-                <text>本地演示</text>
+                <text>{{ $t("admin.runMode") }}</text>
+                <text>{{ $t("admin.cloudMode") }}</text>
               </view>
               <view class="admin-system__row">
-                <text>应用版本</text>
+                <text>{{ $t("admin.appVersion") }}</text>
                 <text class="mono">v{{ APP_VERSION }}</text>
               </view>
               <view class="admin-system__row">
-                <text>小程序 AppID</text>
+                <text>{{ $t("admin.appId") }}</text>
                 <text class="mono">wx6aef5e…ecdd</text>
               </view>
               <view class="admin-system__row">
-                <text>服务端 RBAC</text>
-                <text class="admin-system__warning">未接入</text>
+                <text>{{ $t("admin.serverRbac") }}</text>
+                <text class="admin-system__warning">{{ $t("admin.connected") }}</text>
               </view>
             </view>
           </view>
@@ -483,7 +511,7 @@ function restoreContentDefaults() {
         <view class="admin-disclaimer">
           <AppIcon name="alert" :size="16" color="#946617" />
           <text>
-            当前管理台直接操作本机数据，仅用于产品验证。正式上线需要服务端管理员认证、角色权限、操作审计和数据持久化。
+            {{ $t("admin.disclaimer") }}
           </text>
         </view>
       </view>
@@ -492,8 +520,8 @@ function restoreContentDefaults() {
         <view class="admin-panel card">
           <view class="admin-panel__head admin-panel__head--toolbar">
             <view>
-              <text class="admin-panel__title">用户列表</text>
-              <text class="admin-panel__meta">{{ filteredUsers.length }} 个本地账户</text>
+              <text class="admin-panel__title">{{ $t("admin.userList") }}</text>
+              <text class="admin-panel__meta">{{ $t("admin.cloudAccountCount", { count: filteredUsers.length }) }}</text>
             </view>
             <view class="admin-search">
               <AppIcon name="search" :size="15" color="#7b8783" />
@@ -501,19 +529,19 @@ function restoreContentDefaults() {
                 v-model="userSearch"
                 class="admin-search__input"
                 type="text"
-                placeholder="搜索昵称、用户名或手机号"
+                :placeholder="$t('admin.searchPlaceholder')"
               />
             </view>
           </view>
 
           <view class="admin-table">
             <view class="admin-table__head admin-table__head--users">
-              <text>用户</text>
-              <text>账户</text>
-              <text>风险 / 经验</text>
-              <text>角色</text>
-              <text>状态</text>
-              <text>操作</text>
+              <text>{{ $t("admin.userColumn") }}</text>
+              <text>{{ $t("admin.accountColumn") }}</text>
+              <text>{{ $t("admin.riskExperience") }}</text>
+              <text>{{ $t("admin.roleColumn") }}</text>
+              <text>{{ $t("admin.statusColumn") }}</text>
+              <text>{{ $t("admin.actionsColumn") }}</text>
             </view>
             <view
               v-for="user in filteredUsers"
@@ -524,7 +552,7 @@ function restoreContentDefaults() {
                 <view class="admin-table-user__avatar">{{ user.nickname.slice(0, 1) }}</view>
                 <view>
                   <text class="admin-table-user__name">{{ user.nickname }}</text>
-                  <text class="admin-table-user__meta">创建于 {{ formatDate(user.createdAt) }}</text>
+                  <text class="admin-table-user__meta">{{ $t("admin.createdOn", { date: formatDate(user.createdAt) }) }}</text>
                 </view>
               </view>
               <text class="admin-table__account mono">{{ userAccount(user) }}</text>
@@ -536,14 +564,14 @@ function restoreContentDefaults() {
                 class="chip"
                 :class="user.role === 'admin' ? 'chip--blue' : ''"
               >
-                {{ user.role === "admin" ? "管理员" : "用户" }}
+                {{ user.role === "admin" ? $t("admin.adminRole") : $t("admin.userRole") }}
               </view>
               <view
                 class="admin-account-status"
                 :class="{ 'admin-account-status--disabled': user.status === 'disabled' }"
               >
                 <view class="admin-account-status__dot" />
-                <text>{{ user.status === "disabled" ? "已禁用" : "正常" }}</text>
+                <text>{{ user.status === "disabled" ? $t("admin.disabledStatus") : $t("admin.normalStatus") }}</text>
               </view>
               <view class="admin-row-actions">
                 <button
@@ -551,20 +579,20 @@ function restoreContentDefaults() {
                   :disabled="user.id === currentUser?.id"
                   @tap="toggleRole(user)"
                 >
-                  {{ user.role === "admin" ? "移出管理员" : "设为管理员" }}
+                  {{ user.role === "admin" ? $t("admin.demote") : $t("admin.promote") }}
                 </button>
                 <button
                   class="admin-action admin-action--danger"
                   :disabled="user.id === currentUser?.id"
                   @tap="toggleStatus(user)"
                 >
-                  {{ user.status === "disabled" ? "恢复" : "禁用" }}
+                  {{ user.status === "disabled" ? $t("admin.enable") : $t("admin.disable") }}
                 </button>
               </view>
             </view>
             <view v-if="!filteredUsers.length" class="admin-empty">
               <AppIcon name="search" :size="23" color="#95a09c" />
-              <text>没有匹配的用户</text>
+              <text>{{ $t("admin.noMatchUsers") }}</text>
             </view>
           </view>
         </view>
@@ -575,14 +603,14 @@ function restoreContentDefaults() {
           <view class="admin-panel card">
             <view class="admin-panel__head">
               <view>
-                <text class="admin-panel__title">课程发布</text>
-                <text class="admin-panel__meta">{{ visibleLessons.length }} / {{ lessons.length }} 已发布</text>
+                <text class="admin-panel__title">{{ $t("admin.lessonPublishing") }}</text>
+                <text class="admin-panel__meta">{{ visibleLessons.length }} / {{ localizedLessons.length }} {{ $t("admin.published") }}</text>
               </view>
-              <view class="chip chip--teal">学习页</view>
+              <view class="chip chip--teal">{{ $t("learn.title") }}</view>
             </view>
             <view class="admin-content-list">
               <view
-                v-for="lesson in lessons"
+                v-for="lesson in localizedLessons"
                 :key="lesson.id"
                 class="admin-content-row"
               >
@@ -591,10 +619,10 @@ function restoreContentDefaults() {
                 </view>
                 <view class="admin-content-row__copy">
                   <text class="admin-content-row__title">{{ lesson.title }}</text>
-                  <text class="admin-content-row__meta">{{ lesson.chapter }} · {{ lesson.level }} · {{ lesson.minutes }} 分钟</text>
+                  <text class="admin-content-row__meta">{{ lesson.chapter }} · {{ lesson.level }} · {{ $t("common.minutes", { count: lesson.minutes }) }}</text>
                 </view>
                 <view class="admin-content-row__status">
-                  {{ isLessonEnabled(lesson.id) ? "已发布" : "草稿" }}
+                  {{ isLessonEnabled(lesson.id) ? $t("admin.published") : $t("admin.draft") }}
                 </view>
                 <button
                   class="admin-switch"
@@ -610,14 +638,14 @@ function restoreContentDefaults() {
           <view class="admin-panel card">
             <view class="admin-panel__head">
               <view>
-                <text class="admin-panel__title">策略发布</text>
-                <text class="admin-panel__meta">{{ visibleStrategies.length }} / {{ strategyTemplates.length }} 已启用</text>
+                <text class="admin-panel__title">{{ $t("admin.strategyPublishing") }}</text>
+                <text class="admin-panel__meta">{{ visibleStrategies.length }} / {{ localizedStrategyTemplates.length }} {{ $t("admin.enabledLabel") }}</text>
               </view>
-              <view class="chip chip--blue">策略实验室</view>
+              <view class="chip chip--blue">{{ $t("strategy.title") }}</view>
             </view>
             <view class="admin-content-list">
               <view
-                v-for="strategy in strategyTemplates"
+                v-for="strategy in localizedStrategyTemplates"
                 :key="strategy.id"
                 class="admin-content-row"
               >
@@ -629,7 +657,7 @@ function restoreContentDefaults() {
                   <text class="admin-content-row__meta">{{ strategy.tag }} · {{ strategy.risk }}</text>
                 </view>
                 <view class="admin-content-row__status">
-                  {{ isStrategyEnabled(strategy.id) ? "已启用" : "已停用" }}
+                  {{ isStrategyEnabled(strategy.id) ? $t("admin.enabledLabel") : $t("admin.disabledLabel") }}
                 </view>
                 <button
                   class="admin-switch"
@@ -646,7 +674,7 @@ function restoreContentDefaults() {
         <view class="admin-content-actions">
           <button class="button-secondary" @tap="restoreContentDefaults">
             <AppIcon name="reset" :size="15" color="#17211e" />
-            <text>恢复默认发布状态</text>
+            <text>{{ $t("admin.restorePublish") }}</text>
           </button>
         </view>
       </view>
@@ -656,8 +684,8 @@ function restoreContentDefaults() {
           <view class="admin-panel card">
             <view class="admin-panel__head">
               <view>
-                <text class="admin-panel__title">首页运营公告</text>
-                <text class="admin-panel__meta">保存后立即在当前设备的首页展示</text>
+                <text class="admin-panel__title">{{ $t("admin.homeNotice") }}</text>
+                <text class="admin-panel__meta">{{ $t("admin.homeNoticeMeta") }}</text>
               </view>
               <button
                 class="admin-switch"
@@ -670,23 +698,23 @@ function restoreContentDefaults() {
 
             <view class="admin-form">
               <view class="admin-form__field">
-                <text class="admin-form__label">公告标题</text>
+                <text class="admin-form__label">{{ $t("admin.noticeTitle") }}</text>
                 <view class="admin-form__input">
                   <input
                     v-model="announcementDraft.title"
                     type="text"
                     maxlength="40"
-                    placeholder="例如：模拟环境说明"
+                    :placeholder="$t('admin.noticeTitlePlaceholder')"
                   />
                 </view>
               </view>
               <view class="admin-form__field">
-                <text class="admin-form__label">公告内容</text>
+                <text class="admin-form__label">{{ $t("admin.noticeText") }}</text>
                 <view class="admin-form__textarea">
                   <textarea
                     v-model="announcementDraft.text"
                     maxlength="200"
-                    placeholder="填写面向用户的公告内容"
+                    :placeholder="$t('admin.noticeTextPlaceholder')"
                   />
                 </view>
                 <text class="admin-form__counter">{{ announcementDraft.text.length }} / 200</text>
@@ -697,17 +725,17 @@ function restoreContentDefaults() {
               </view>
               <button class="button-primary button-primary--teal admin-form__save" @tap="saveAnnouncementConfig">
                 <AppIcon name="save" :size="16" color="#ffffff" />
-                <text>保存运营公告</text>
+                <text>{{ $t("admin.saveNotice") }}</text>
               </button>
             </view>
           </view>
 
           <view class="admin-preview card">
-            <text class="admin-preview__label">首页预览</text>
+            <text class="admin-preview__label">{{ $t("admin.homePreview") }}</text>
             <view class="admin-preview__window">
               <view class="admin-preview__header">
                 <view class="admin-preview__logo">θ</view>
-                <text>道元期权</text>
+                <text>{{ $t("app.name") }}</text>
               </view>
               <view
                 v-if="announcementDraft.enabled"
@@ -715,8 +743,8 @@ function restoreContentDefaults() {
               >
                 <AppIcon name="bell" :size="15" color="#946617" />
                 <view>
-                  <text>{{ announcementDraft.title || "公告标题" }}</text>
-                  <text>{{ announcementDraft.text || "公告内容将在这里显示。" }}</text>
+                  <text>{{ announcementDraft.title || $t("admin.noticeTitle") }}</text>
+                  <text>{{ announcementDraft.text || $t("admin.noticeTextPlaceholder") }}</text>
                 </view>
               </view>
               <view class="admin-preview__line admin-preview__line--wide" />
@@ -728,7 +756,7 @@ function restoreContentDefaults() {
               </view>
             </view>
             <view class="admin-preview__meta">
-              <text>最近保存</text>
+              <text>{{ $t("admin.lastSaved") }}</text>
               <text>{{ formatDate(contentState.announcement.updatedAt) }}</text>
             </view>
           </view>
@@ -854,6 +882,28 @@ function restoreContentDefaults() {
   flex-direction: column;
   gap: 12px;
   margin-top: auto;
+}
+
+.admin-lang {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+}
+
+.admin-lang__item {
+  flex: 1;
+  height: 26px;
+  border-radius: 5px;
+  color: #9caeaa;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-lang__item--active {
+  background: rgba(185, 229, 216, 0.12);
+  color: #b9e5d8;
 }
 
 .admin-back {

@@ -1,8 +1,9 @@
 import { computed, reactive, watch } from "vue";
-import { lessons } from "../data/lessons";
-import { strategyTemplates } from "../data/strategies";
+import { localizedLessons } from "../data/lessons";
+import { localizedStrategyTemplates } from "../data/strategies";
 import { currentSessionToken } from "../services/session";
 import { userDataApi } from "../services/userData";
+import { translate } from "../i18n";
 
 const STORAGE_KEY = "options-lab-content-settings-v1";
 
@@ -22,8 +23,8 @@ interface ContentSettingsState {
 function defaultAnnouncement(): AnnouncementSettings {
   return {
     enabled: false,
-    title: "模拟环境说明",
-    text: "当前行情、策略和收益均为演示数据，不构成投资建议。",
+    title: translate("common.defaultNoticeTitle"),
+    text: translate("common.defaultNoticeText"),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -146,10 +147,12 @@ function scheduleSync(delay = 500) {
 }
 
 const visibleLessons = computed(() =>
-  lessons.filter((lesson) => !state.disabledLessonIds.includes(lesson.id)),
+  localizedLessons.value.filter(
+    (lesson) => !state.disabledLessonIds.includes(lesson.id),
+  ),
 );
 const visibleStrategies = computed(() =>
-  strategyTemplates.filter(
+  localizedStrategyTemplates.value.filter(
     (strategy) => !state.disabledStrategyIds.includes(strategy.id),
   ),
 );

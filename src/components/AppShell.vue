@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import AppIcon from "./AppIcon.vue";
 import { APP_VERSION } from "../config/runtime";
+import { useLocale } from "../composables/useLocale";
+import { translate } from "../i18n";
 
 interface Props {
   secondary?: boolean;
@@ -11,12 +13,14 @@ withDefaults(defineProps<Props>(), {
   secondary: false,
 });
 
+const { locale, setLocale } = useLocale();
+
 const navItems = [
-  { label: "首页", icon: "home", path: "/pages/home/index" },
-  { label: "学习", icon: "book", path: "/pages/learn/index" },
-  { label: "策略", icon: "chart", path: "/pages/strategy/index" },
-  { label: "实战", icon: "activity", path: "/pages/practice/index" },
-  { label: "我的", icon: "user", path: "/pages/profile/index" },
+  { key: "nav.home", icon: "home", path: "/pages/home/index" },
+  { key: "nav.learn", icon: "book", path: "/pages/learn/index" },
+  { key: "nav.strategy", icon: "chart", path: "/pages/strategy/index" },
+  { key: "nav.practice", icon: "activity", path: "/pages/practice/index" },
+  { key: "nav.profile", icon: "user", path: "/pages/profile/index" },
 ];
 
 const pages = getCurrentPages();
@@ -27,10 +31,37 @@ const activeIndex = computed(() =>
   navItems.findIndex((item) => item.path === currentPath),
 );
 
+const routeTitleKeys: Record<string, string> = {
+  "/pages/home/index": "app.name",
+  "/pages/learn/index": "learn.title",
+  "/pages/strategy/index": "strategy.title",
+  "/pages/practice/index": "practice.title",
+  "/pages/profile/index": "profile.title",
+  "/pages/lesson/index": "learn.title",
+  "/pages/order/index": "order.title",
+  "/pages/live/index": "live.title",
+  "/pages/settings/index": "settings.title",
+};
+
+watch(
+  [locale, () => currentPath],
+  () => {
+    const key = routeTitleKeys[currentPath] ?? "app.name";
+    const title = translate(key);
+    uni.setNavigationBarTitle({ title });
+    if (typeof document !== "undefined") document.title = title;
+  },
+  { immediate: true },
+);
+
 function go(path: string) {
   const pages = getCurrentPages();
   if (`/${pages[pages.length - 1]?.route ?? ""}` === path) return;
   uni.reLaunch({ url: path });
+}
+
+function switchLocale(next: "en" | "zh-CN") {
+  setLocale(next);
 }
 </script>
 
@@ -40,8 +71,8 @@ function go(path: string) {
       <view class="brand block">
         <view class="brand__mark">θ</view>
         <view class="brand__copy">
-          <text class="brand__name">道元期权</text>
-          <text class="brand__meta">DAO OPTIONS</text>
+          <text class="brand__name">{{ $t("app.name") }}</text>
+          <text class="brand__meta">{{ $t("app.meta") }}</text>
         </view>
       </view>
 
@@ -58,21 +89,37 @@ function go(path: string) {
             :size="19"
             :color="activeIndex === index ? '#0e6f5c' : '#687571'"
           />
-          <text>{{ item.label }}</text>
+          <text>{{ $t(item.key) }}</text>
         </button>
       </view>
 
       <view class="rail-bottom">
+        <view class="rail-lang">
+          <button
+            class="rail-lang__item"
+            :class="{ 'rail-lang__item--active': locale === 'en' }"
+            @tap="switchLocale('en')"
+          >
+            EN
+          </button>
+          <button
+            class="rail-lang__item"
+            :class="{ 'rail-lang__item--active': locale === 'zh-CN' }"
+            @tap="switchLocale('zh-CN')"
+          >
+            中文
+          </button>
+        </view>
         <button class="rail-live" @tap="go('/pages/live/index')">
           <view class="rail-live__top">
             <AppIcon name="shield" :size="18" color="#946617" />
-            <text class="rail-live__status">待接入</text>
+            <text class="rail-live__status">{{ $t("nav.pending") }}</text>
           </view>
-          <text class="rail-live__title">实盘交易</text>
-          <text class="rail-live__copy">券商授权与交易网关</text>
+          <text class="rail-live__title">{{ $t("nav.live") }}</text>
+          <text class="rail-live__copy">{{ $t("nav.liveCopy") }}</text>
         </button>
         <view class="rail-foot">
-          <text>演示行情</text>
+          <text>{{ $t("app.demoData") }}</text>
           <view class="rail-foot__dot" />
           <text>v{{ APP_VERSION }}</text>
         </view>
@@ -97,7 +144,24 @@ function go(path: string) {
           :color="activeIndex === index ? '#0e6f5c' : '#7a8682'"
           :stroke-width="activeIndex === index ? 2.1 : 1.8"
         />
-        <text>{{ item.label }}</text>
+        <text>{{ $t(item.key) }}</text>
+      </button>
+    </view>
+
+    <view v-if="!secondary" class="mobile-lang">
+      <button
+        class="mobile-lang__item"
+        :class="{ 'mobile-lang__item--active': locale === 'en' }"
+        @tap="switchLocale('en')"
+      >
+        EN
+      </button>
+      <button
+        class="mobile-lang__item"
+        :class="{ 'mobile-lang__item--active': locale === 'zh-CN' }"
+        @tap="switchLocale('zh-CN')"
+      >
+        中文
       </button>
     </view>
   </view>
@@ -197,6 +261,29 @@ function go(path: string) {
   margin-top: auto;
 }
 
+.rail-lang {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.rail-lang__item {
+  flex: 1;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rail-lang__item--active {
+  background: var(--teal-wash);
+  color: var(--teal);
+}
+
 .rail-live {
   display: flex;
   flex-direction: column;
@@ -259,6 +346,36 @@ function go(path: string) {
   display: none;
 }
 
+.mobile-lang {
+  display: none;
+  position: fixed;
+  z-index: 60;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  right: 12px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(20, 40, 35, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-lang__item {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mobile-lang__item--active {
+  background: var(--teal-wash);
+  color: var(--teal);
+}
+
 @media (max-width: 900px) {
   .desktop-rail {
     display: none;
@@ -282,6 +399,10 @@ function go(path: string) {
     border-top: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(14px);
+  }
+
+  .mobile-lang {
+    display: flex;
   }
 
   .mobile-nav__item {

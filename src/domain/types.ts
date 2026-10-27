@@ -41,7 +41,7 @@ export interface StrategyTemplate {
   name: string;
   shortName: string;
   thesis: string;
-  risk: "有限风险" | "风险可控" | "高风险";
+  risk: string;
   tag: string;
   legs: StrategyLegSpec[];
 }
@@ -104,7 +104,7 @@ export interface PaperOrder {
   createdAt: string;
   title: string;
   subtitle: string;
-  status: "已成交";
+  status: string;
   cashFlow: number;
   quantity: number;
   legs?: PaperOrderLeg[];

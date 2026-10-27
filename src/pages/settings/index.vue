@@ -6,11 +6,12 @@ import PageHeader from "../../components/PageHeader.vue";
 import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
 import {
-  EXPERIENCE_LABELS,
-  RISK_LABELS,
   type ExperienceLevel,
   type RiskLevel,
 } from "../../domain/user";
+import { translate } from "../../i18n";
+import { experienceLabel, riskLabel } from "../../composables/useLabels";
+import { useLocale } from "../../composables/useLocale";
 
 const {
   isLoggedIn,
@@ -19,6 +20,7 @@ const {
   updatePreferences,
 } = useAuth();
 const { visibleStrategies } = useContentSettings();
+const { locale, setLocale } = useLocale();
 const preferredStrategyId = preferences.value?.defaultStrategyId;
 const initialStrategyId =
   (preferredStrategyId &&
@@ -55,8 +57,12 @@ const selectedStrategy = computed(
 );
 const lastSavedLabel = computed(() => {
   const value = preferences.value?.updatedAt;
-  if (!value) return "尚未保存";
-  return new Date(value).toLocaleString("zh-CN");
+  if (!value) return translate("settings.neverSaved");
+  return translate("settings.lastSaved", {
+    time: new Date(value).toLocaleString(
+      locale.value === "zh-CN" ? "zh-CN" : "en-US",
+    ),
+  });
 });
 
 function openAuth() {
@@ -79,12 +85,12 @@ async function save() {
   errorMessage.value = "";
   savedMessage.value = "";
   if (!isLoggedIn.value) {
-    errorMessage.value = "请先登录，再保存账户配置。";
+    errorMessage.value = translate("auth.loginRequired");
     openAuth();
     return;
   }
   if (draft.value.nickname.trim().length < 2) {
-    errorMessage.value = "昵称至少需要 2 个字符";
+    errorMessage.value = translate("settings.invalidNickname");
     return;
   }
   saving.value = true;
@@ -95,13 +101,14 @@ async function save() {
       riskLevel: draft.value.riskLevel,
       defaultStrategyId: draft.value.defaultStrategyId,
       defaultOrderQuantity: draft.value.defaultOrderQuantity,
+      language: locale.value,
     });
     draft.value.nickname = saved.nickname;
-    savedMessage.value = "配置已保存到当前账户";
-    uni.showToast({ title: "配置已保存", icon: "success" });
+    savedMessage.value = translate("settings.saveSuccess");
+    uni.showToast({ title: translate("settings.saveSuccess"), icon: "success" });
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : "保存失败，请稍后重试";
+      error instanceof Error ? error.message : translate("common.error");
   } finally {
     saving.value = false;
   }
@@ -114,14 +121,14 @@ async function save() {
       <view class="page-content">
         <PageHeader
           back
-          title="账户与偏好"
-          eyebrow="Account preferences"
-          subtitle="配置与当前用户绑定，并保存在本机。"
+          :title="$t('settings.title')"
+          :eyebrow="$t('settings.eyebrow')"
+          :subtitle="$t('settings.subtitle')"
         >
           <template #action>
             <view class="settings-status">
               <view class="settings-status__dot" />
-              <text>{{ isLoggedIn ? "本地已保存" : "未登录" }}</text>
+              <text>{{ isLoggedIn ? $t("settings.saved") : $t("settings.notSignedIn") }}</text>
             </view>
           </template>
         </PageHeader>
@@ -130,13 +137,13 @@ async function save() {
           <view class="settings-login__icon">
             <AppIcon name="lock" :size="24" color="#0e6f5c" />
           </view>
-          <text class="settings-login__title">登录后才能保存账户配置</text>
+          <text class="settings-login__title">{{ $t("settings.loginTitle") }}</text>
           <text class="settings-login__desc">
-            注册本地账户后，昵称、风险偏好、默认策略和下单数量会独立保存。
+            {{ $t("settings.loginCopy") }}
           </text>
           <button class="button-primary button-primary--teal" @tap="openAuth">
             <AppIcon name="userPlus" :size="16" color="#ffffff" />
-            <text>登录或注册</text>
+            <text>{{ $t("settings.loginAction") }}</text>
           </button>
         </view>
 
@@ -145,14 +152,14 @@ async function save() {
             <view class="settings-card card">
               <view class="settings-card__head">
                 <view>
-                  <text class="settings-card__title">账户资料</text>
-                  <text class="settings-card__meta">用于应用内展示和策略推荐入口</text>
+                  <text class="settings-card__title">{{ $t("settings.profileTitle") }}</text>
+                  <text class="settings-card__meta">{{ $t("settings.profileMeta") }}</text>
                 </view>
                 <view class="chip chip--teal">{{ accountIdentifier }}</view>
               </view>
 
               <view class="settings-field">
-                <text class="settings-field__label">显示昵称</text>
+                <text class="settings-field__label">{{ $t("settings.nameLabel") }}</text>
                 <view class="settings-input">
                   <AppIcon name="user" :size="17" color="#7b8783" />
                   <input
@@ -160,13 +167,13 @@ async function save() {
                     class="settings-input__field"
                     type="text"
                     maxlength="20"
-                    placeholder="请输入昵称"
+                    :placeholder="$t('settings.namePlaceholder')"
                   />
                 </view>
               </view>
 
               <view class="settings-field">
-                <text class="settings-field__label">期权经验</text>
+                <text class="settings-field__label">{{ $t("settings.experience") }}</text>
                 <view class="choice-grid">
                   <button
                     v-for="option in experienceOptions"
@@ -178,7 +185,7 @@ async function save() {
                     <view class="choice-item__radio">
                       <view v-if="draft.experience === option" class="choice-item__radio-dot" />
                     </view>
-                    <text>{{ EXPERIENCE_LABELS[option] }}</text>
+                    <text>{{ experienceLabel(option) }}</text>
                   </button>
                 </view>
               </view>
@@ -187,8 +194,8 @@ async function save() {
             <view class="settings-card card">
               <view class="settings-card__head">
                 <view>
-                  <text class="settings-card__title">风险偏好</text>
-                  <text class="settings-card__meta">仅用于应用内提示和策略默认值</text>
+                  <text class="settings-card__title">{{ $t("settings.riskTitle") }}</text>
+                  <text class="settings-card__meta">{{ $t("settings.riskMeta") }}</text>
                 </view>
                 <AppIcon name="shield" :size="19" color="#946617" />
               </view>
@@ -202,9 +209,9 @@ async function save() {
                   @tap="draft.riskLevel = option"
                 >
                   <view class="risk-choice__copy">
-                    <text class="risk-choice__title">{{ RISK_LABELS[option] }}</text>
+                    <text class="risk-choice__title">{{ riskLabel(option) }}</text>
                     <text class="risk-choice__desc">
-                      {{ option === "C2" ? "优先保护本金，降低组合波动" : option === "C3" ? "接受适度波动，追求风险收益平衡" : "能承受较大波动和更复杂的策略" }}
+                      {{ option === "C2" ? $t("settings.riskConservative") : option === "C3" ? $t("settings.riskBalanced") : $t("settings.riskAggressive") }}
                     </text>
                   </view>
                   <view class="risk-choice__check">
@@ -222,8 +229,8 @@ async function save() {
             <view class="settings-card card">
               <view class="settings-card__head">
                 <view>
-                  <text class="settings-card__title">策略与交易偏好</text>
-                  <text class="settings-card__meta">进入策略实验室和下单页时自动应用</text>
+                  <text class="settings-card__title">{{ $t("settings.strategyTitle") }}</text>
+                  <text class="settings-card__meta">{{ $t("settings.strategyMeta") }}</text>
                 </view>
                 <AppIcon name="sliders" :size="19" color="#52605c" />
               </view>
@@ -235,7 +242,7 @@ async function save() {
               >
                 <view class="settings-select">
                   <view>
-                    <text class="settings-field__label">默认策略</text>
+                    <text class="settings-field__label">{{ $t("settings.defaultStrategy") }}</text>
                     <text class="settings-select__value">{{ selectedStrategy?.name }}</text>
                   </view>
                   <view class="settings-select__action">
@@ -249,8 +256,8 @@ async function save() {
 
               <view class="settings-quantity">
                 <view>
-                  <text class="settings-field__label">默认下单数量</text>
-                  <text class="settings-quantity__hint">模拟下单页初始合约张数</text>
+                  <text class="settings-field__label">{{ $t("settings.defaultQuantity") }}</text>
+                  <text class="settings-quantity__hint">{{ $t("settings.quantityHint") }}</text>
                 </view>
                 <view class="settings-stepper">
                   <button class="settings-stepper__button" @tap="changeQuantity(-1)">
@@ -259,6 +266,35 @@ async function save() {
                   <text class="settings-stepper__value mono">{{ draft.defaultOrderQuantity }}</text>
                   <button class="settings-stepper__button" @tap="changeQuantity(1)">
                     <AppIcon name="plus" :size="14" color="#52605c" />
+                  </button>
+                </view>
+              </view>
+            </view>
+
+            <view class="settings-card card">
+              <view class="settings-card__head">
+                <view>
+                  <text class="settings-card__title">{{ $t("settings.languageTitle") }}</text>
+                  <text class="settings-card__meta">{{ $t("settings.languageMeta") }}</text>
+                </view>
+                <AppIcon name="command" :size="19" color="#52605c" />
+              </view>
+              <view class="settings-language-row">
+                <text class="settings-field__label">{{ $t("settings.languageLabel") }}</text>
+                <view class="settings-language-toggle">
+                  <button
+                    class="settings-language-toggle__item"
+                    :class="{ 'settings-language-toggle__item--active': locale === 'en' }"
+                    @tap="setLocale('en')"
+                  >
+                    {{ $t("common.english") }}
+                  </button>
+                  <button
+                    class="settings-language-toggle__item"
+                    :class="{ 'settings-language-toggle__item--active': locale === 'zh-CN' }"
+                    @tap="setLocale('zh-CN')"
+                  >
+                    {{ $t("common.chinese") }}
                   </button>
                 </view>
               </view>
@@ -275,7 +311,7 @@ async function save() {
 
             <button class="button-primary button-primary--teal settings-save" @tap="save">
               <AppIcon name="save" :size="16" color="#ffffff" />
-              <text>保存账户配置</text>
+              <text>{{ $t("settings.saveButton") }}</text>
             </button>
           </view>
 
@@ -286,23 +322,23 @@ async function save() {
                   {{ draft.nickname.slice(0, 1) || "U" }}
                 </view>
                 <view class="account-summary__copy">
-                  <text class="account-summary__name">{{ draft.nickname || "未命名用户" }}</text>
+                  <text class="account-summary__name">{{ draft.nickname || $t("settings.notSignedIn") }}</text>
                   <text class="account-summary__username">{{ accountIdentifier }}</text>
                 </view>
                 <view class="account-summary__meta">
-                  <view class="chip">{{ RISK_LABELS[draft.riskLevel] }}</view>
-                  <view class="chip">{{ EXPERIENCE_LABELS[draft.experience] }}</view>
+                  <view class="chip">{{ riskLabel(draft.riskLevel) }}</view>
+                  <view class="chip">{{ experienceLabel(draft.experience) }}</view>
                 </view>
               </view>
               <view class="account-summary__line" />
               <view class="account-summary__details">
                 <view class="account-summary__row">
-                  <text>默认策略</text>
+                  <text>{{ $t("settings.defaultStrategy") }}</text>
                   <text>{{ selectedStrategy?.shortName }}</text>
                 </view>
                 <view class="account-summary__row">
-                  <text>默认数量</text>
-                  <text class="mono">{{ draft.defaultOrderQuantity }} 张</text>
+                  <text>{{ $t("settings.defaultQuantity") }}</text>
+                  <text class="mono">{{ draft.defaultOrderQuantity }}</text>
                 </view>
               </view>
             </view>
@@ -310,13 +346,13 @@ async function save() {
             <view class="data-scope card">
               <view class="data-scope__head">
                 <AppIcon name="info" :size="18" color="#436d93" />
-                <text>数据范围</text>
+                <text>{{ $t("settings.cloudTitle") }}</text>
               </view>
               <text class="data-scope__text">
-                这些配置保存在当前设备，并绑定到用户 ID。当前版本不上传云端，也不支持跨设备同步。
+                {{ $t("settings.cloudCopy") }}
               </text>
               <text class="data-scope__meta">
-                最近保存：{{ lastSavedLabel }}
+                {{ lastSavedLabel }}
               </text>
             </view>
           </view>
@@ -386,6 +422,38 @@ async function save() {
   margin-top: 2px;
   color: var(--muted);
   font-size: 9px;
+}
+
+.settings-language-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.settings-language-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.settings-language-toggle__item {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.settings-language-toggle__item--active {
+  background: #ffffff;
+  color: var(--teal);
+  box-shadow: 0 1px 2px rgba(20, 40, 35, 0.08);
 }
 
 .settings-field {

@@ -6,12 +6,13 @@ import MiniLineChart from "../../components/MiniLineChart.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import {
   CONTRACT_MULTIPLIER,
-  DEMO_SNAPSHOT_LABEL,
+  demoSnapshotLabel,
   findQuoteById,
   optionDisplayName,
   underlying,
 } from "../../data/options";
 import { usePaperAccount } from "../../composables/usePaperAccount";
+import { translate } from "../../i18n";
 import {
   formatMoney,
   formatPercent,
@@ -63,7 +64,9 @@ const positions = computed(() =>
       pnl,
       marketValue,
       iv: quote?.iv ?? 0,
-      sideLabel: position.netQty > 0 ? "多头" : "空头",
+      sideLabel: translate(
+        position.netQty > 0 ? "practice.longSide" : "practice.shortSide",
+      ),
       quantity: Math.abs(position.netQty),
     };
   }),
@@ -83,14 +86,14 @@ function goLive() {
     <view class="page-canvas">
       <view class="page-content">
         <PageHeader
-          title="模拟实战"
-          eyebrow="Paper trading"
-          subtitle="用本地模拟账户验证策略、记录订单并查看权益变化。"
+          :title="$t('practice.title')"
+          :eyebrow="$t('practice.eyebrow')"
+          :subtitle="$t('practice.subtitle')"
         >
           <template #action>
             <button class="button-primary" @tap="goOrder">
               <AppIcon name="plus" :size="16" color="#ffffff" />
-              <text>新建订单</text>
+              <text>{{ $t("practice.newOrder") }}</text>
             </button>
           </template>
         </PageHeader>
@@ -99,7 +102,7 @@ function goLive() {
           <view class="equity-panel">
             <view class="equity-panel__head">
               <view>
-                <text class="equity-panel__label">账户总权益</text>
+                <text class="equity-panel__label">{{ $t("practice.accountEquity") }}</text>
                 <text class="equity-panel__value mono">{{ formatMoney(totalEquity) }}</text>
                 <view class="equity-panel__change">
                   <view class="equity-panel__change-item">
@@ -121,12 +124,12 @@ function goLive() {
                       {{ formatPercent(dayChangePct, 2, true) }}
                     </text>
                   </view>
-                  <text class="equity-panel__period">示例日变动</text>
+                  <text class="equity-panel__period">{{ $t("practice.sampleDayChange") }}</text>
                 </view>
               </view>
               <view class="equity-panel__env">
                 <view class="status-dot" />
-                <text>本地模拟</text>
+                <text>{{ $t("practice.localSim") }}</text>
               </view>
             </view>
 
@@ -141,11 +144,11 @@ function goLive() {
 
             <view class="equity-panel__stats">
               <view class="equity-stat">
-                <text class="equity-stat__label">累计收益</text>
+                <text class="equity-stat__label">{{ $t("common.totalReturn") }}</text>
                 <text class="equity-stat__value mono">{{ formatPercent(totalReturn, 2, true) }}</text>
               </view>
               <view class="equity-stat">
-                <text class="equity-stat__label">未实现盈亏</text>
+                <text class="equity-stat__label">{{ $t("practice.unrealizedPnl") }}</text>
                 <text
                   class="equity-stat__value mono"
                   :class="unrealizedPnl >= 0 ? 'equity-panel__up' : 'equity-panel__down'"
@@ -154,11 +157,11 @@ function goLive() {
                 </text>
               </view>
               <view class="equity-stat">
-                <text class="equity-stat__label">可用资金</text>
+                <text class="equity-stat__label">{{ $t("common.availableCash") }}</text>
                 <text class="equity-stat__value mono">{{ formatMoney(availableCash, 0) }}</text>
               </view>
               <view class="equity-stat">
-                <text class="equity-stat__label">保证金占用</text>
+                <text class="equity-stat__label">{{ $t("practice.marginUsed") }}</text>
                 <text class="equity-stat__value mono">{{ formatMoney(marginUsed, 0) }}</text>
               </view>
             </view>
@@ -168,14 +171,14 @@ function goLive() {
             <view class="risk-card card">
               <view class="risk-card__head">
                 <view>
-                  <text class="eyebrow">Risk snapshot</text>
-                  <text class="risk-card__title">账户风险</text>
+                  <text class="eyebrow">{{ $t("practice.riskSnapshot") }}</text>
+                  <text class="risk-card__title">{{ $t("practice.accountRisk") }}</text>
                 </view>
-                <view class="chip chip--amber">{{ marginRatio > 0.25 ? "偏高" : "可控" }}</view>
+                <view class="chip chip--amber">{{ marginRatio > 0.25 ? $t("practice.elevated") : $t("practice.controlled") }}</view>
               </view>
               <view class="risk-card__metric">
                 <view class="risk-card__metric-head">
-                  <text>保证金使用率</text>
+                  <text>{{ $t("practice.marginUse") }}</text>
                   <text class="mono">{{ formatPercent(marginRatio, 1) }}</text>
                 </view>
                 <view class="risk-card__track">
@@ -187,21 +190,21 @@ function goLive() {
               </view>
               <view class="risk-facts">
                 <view class="risk-fact">
-                  <text>初始资金</text>
+                  <text>{{ $t("practice.initialCapital") }}</text>
                   <text class="mono">{{ formatMoney(initialEquity, 0) }}</text>
                 </view>
                 <view class="risk-fact">
-                  <text>持仓数量</text>
+                  <text>{{ $t("practice.positionCount") }}</text>
                   <text class="mono">{{ activePositions.length }}</text>
                 </view>
                 <view class="risk-fact">
-                  <text>成交笔数</text>
+                  <text>{{ $t("practice.tradeCount") }}</text>
                   <text class="mono">{{ state.orders.length }}</text>
                 </view>
               </view>
               <view class="risk-card__note">
                 <AppIcon name="info" :size="13" color="#7b8783" />
-                <text>保证金按 15% 示例费率估算，实盘以券商规则为准。</text>
+                <text>{{ $t("practice.marginNote") }}</text>
               </view>
             </view>
 
@@ -210,10 +213,10 @@ function goLive() {
                 <AppIcon name="link" :size="19" color="#946617" />
               </view>
               <view class="live-banner__copy">
-                <text class="live-banner__title">连接实盘账户</text>
-                <text class="live-banner__desc">券商授权、只读同步与交易网关</text>
+                <text class="live-banner__title">{{ $t("practice.connectLive") }}</text>
+                <text class="live-banner__desc">{{ $t("practice.connectLiveCopy") }}</text>
               </view>
-              <view class="live-banner__status">待接入</view>
+              <view class="live-banner__status">{{ $t("nav.pending") }}</view>
               <AppIcon name="chevronRight" :size="15" color="#946617" />
             </button>
           </view>
@@ -222,8 +225,8 @@ function goLive() {
         <view class="portfolio-panel card">
           <view class="portfolio-panel__head">
             <view class="section-heading__copy">
-              <text class="section-heading__title">模拟持仓与订单</text>
-              <text class="section-heading__meta">{{ DEMO_SNAPSHOT_LABEL }}</text>
+              <text class="section-heading__title">{{ $t("practice.paperPositions") }}</text>
+              <text class="section-heading__meta">{{ demoSnapshotLabel() }}</text>
             </view>
             <view class="segmented">
               <button
@@ -231,14 +234,14 @@ function goLive() {
                 :class="{ 'segmented__item--active': activeTab === 'positions' }"
                 @tap="activeTab = 'positions'"
               >
-                持仓 {{ activePositions.length }}
+                {{ $t("practice.positionTab", { count: activePositions.length }) }}
               </button>
               <button
                 class="segmented__item"
                 :class="{ 'segmented__item--active': activeTab === 'orders' }"
                 @tap="activeTab = 'orders'"
               >
-                订单 {{ state.orders.length }}
+                {{ $t("practice.orderTab", { count: state.orders.length }) }}
               </button>
             </view>
           </view>
@@ -246,11 +249,11 @@ function goLive() {
           <view v-if="activeTab === 'positions'">
             <view v-if="positions.length" class="position-table">
               <view class="position-table__head">
-                <text>合约</text>
-                <text>方向 / 数量</text>
-                <text>持仓均价</text>
-                <text>最新价</text>
-                <text>浮动盈亏</text>
+                <text>{{ $t("common.contract") }}</text>
+                <text>{{ $t("practice.sideQty") }}</text>
+                <text>{{ $t("practice.averagePrice") }}</text>
+                <text>{{ $t("practice.lastPrice") }}</text>
+                <text>{{ $t("practice.floating") }}</text>
               </view>
               <view
                 v-for="position in positions"
@@ -289,7 +292,7 @@ function goLive() {
                     {{ formatSignedMoney(position.pnl) }}
                   </text>
                   <text class="position-pnl__meta mono">
-                    市值 {{ formatMoney(position.marketValue, 0) }}
+                    {{ $t("practice.marketValue") }} {{ formatMoney(position.marketValue, 0) }}
                   </text>
                 </view>
               </view>
@@ -298,11 +301,11 @@ function goLive() {
               <view class="empty-state__icon">
                 <AppIcon name="layers" :size="24" color="#7b8783" />
               </view>
-              <text class="empty-state__title">暂无模拟持仓</text>
-              <text class="empty-state__desc">从策略实验室或新建订单开始验证。</text>
+              <text class="empty-state__title">{{ $t("practice.emptyPositions") }}</text>
+              <text class="empty-state__desc">{{ $t("practice.noPositionsDesc") }}</text>
               <button class="button-secondary" @tap="goOrder">
                 <AppIcon name="plus" :size="15" color="#17211e" />
-                <text>新建订单</text>
+                <text>{{ $t("practice.newOrder") }}</text>
               </button>
             </view>
           </view>
@@ -336,17 +339,17 @@ function goLive() {
               <view class="empty-state__icon">
                 <AppIcon name="activity" :size="24" color="#7b8783" />
               </view>
-              <text class="empty-state__title">暂无成交记录</text>
-              <text class="empty-state__desc">完成第一笔模拟下单后，记录会显示在这里。</text>
+              <text class="empty-state__title">{{ $t("practice.noOrdersTitle") }}</text>
+              <text class="empty-state__desc">{{ $t("practice.noOrdersDesc") }}</text>
             </view>
           </view>
 
           <view class="portfolio-panel__foot">
             <view class="portfolio-panel__source">
               <AppIcon name="info" :size="13" color="#7b8783" />
-              <text>行情与账户均为本地演示，数据保存在当前设备。</text>
+              <text>{{ $t("practice.dataNote") }}</text>
             </view>
-            <text class="portfolio-panel__spot mono">标的 {{ underlying.spot.toFixed(3) }}</text>
+            <text class="portfolio-panel__spot mono">{{ $t("practice.underlyingSpot", { price: underlying.spot.toFixed(3) }) }}</text>
           </view>
         </view>
 
@@ -356,8 +359,8 @@ function goLive() {
               <AppIcon name="plus" :size="20" color="#0e6f5c" />
             </view>
             <view>
-              <text class="action-tile__title">单腿模拟下单</text>
-              <text class="action-tile__desc">选择行权价、方向与数量</text>
+              <text class="action-tile__title">{{ $t("practice.singleOrderTitle") }}</text>
+              <text class="action-tile__desc">{{ $t("practice.singleOrderDesc") }}</text>
             </view>
             <AppIcon name="chevronRight" :size="16" color="#7b8783" />
           </button>
@@ -366,8 +369,8 @@ function goLive() {
               <AppIcon name="shield" :size="20" color="#946617" />
             </view>
             <view>
-              <text class="action-tile__title">实盘接入检查</text>
-              <text class="action-tile__desc">券商、行情、授权与风控要求</text>
+              <text class="action-tile__title">{{ $t("practice.liveCheckTitle") }}</text>
+              <text class="action-tile__desc">{{ $t("practice.liveCheckDesc") }}</text>
             </view>
             <AppIcon name="chevronRight" :size="16" color="#7b8783" />
           </button>

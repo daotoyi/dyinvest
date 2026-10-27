@@ -12,10 +12,13 @@ export function formatSignedMoney(value: number, digits = 2) {
 }
 
 export function formatNumber(value: number, digits = 0) {
-  return value.toLocaleString("zh-CN", {
+  return value.toLocaleString(
+    getAppLocale() === "en" ? "en-US" : "zh-CN",
+    {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  });
+    },
+  );
 }
 
 export function formatPercent(value: number, digits = 2, signed = false) {
@@ -34,5 +37,10 @@ export function formatSignedNumber(value: number, digits = 0) {
 }
 
 export function optionLabel(type: "call" | "put", strike: number) {
+  if (getAppLocale() === "en") {
+    return `${type === "call" ? "C" : "P"} ${strike.toFixed(3)}`;
+  }
   return `${type === "call" ? "购" : "沽"}${strike.toFixed(3)}`;
 }
+import { getAppLocale } from "../i18n";
+

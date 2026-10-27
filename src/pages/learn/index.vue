@@ -6,6 +6,7 @@ import PageHeader from "../../components/PageHeader.vue";
 import { lessons } from "../../data/lessons";
 import { useLearningProgress } from "../../composables/useLearningProgress";
 import { useContentSettings } from "../../composables/useContentSettings";
+import { translate } from "../../i18n";
 
 const { completedCount, progress, isCompleted } = useLearningProgress();
 const { visibleLessons, isLessonEnabled } = useContentSettings();
@@ -38,6 +39,27 @@ const advancedProgress = computed(() => {
 function openLesson(id: string) {
   uni.navigateTo({ url: `/pages/lesson/index?id=${id}` });
 }
+
+function filterLabel(item: string) {
+  const key =
+    item === "全部"
+      ? "common.all"
+      : item === "基础"
+        ? "common.foundations"
+        : item === "进阶"
+          ? "common.advanced"
+          : item === "高阶"
+            ? "common.advancedLevel"
+            : "";
+  return key ? translate(key) : item;
+}
+
+function levelLabel(level: string) {
+  if (level === "基础") return translate("common.foundations");
+  if (level === "进阶") return translate("common.advanced");
+  if (level === "高阶") return translate("common.advancedLevel");
+  return level;
+}
 </script>
 
 <template>
@@ -45,14 +67,14 @@ function openLesson(id: string) {
     <view class="page-canvas">
       <view class="page-content">
         <PageHeader
-          title="学习"
-          eyebrow="从合约入门到组合风险"
-          subtitle="用可交互的损益图和情景分析，把概念变成判断。"
+          :title="$t('learn.title')"
+          :eyebrow="$t('learn.eyebrow')"
+          :subtitle="$t('learn.subtitle')"
         >
           <template #action>
             <view class="learn-header-count">
               <text class="mono">{{ completedCount }}</text>
-              <text>/ {{ visibleLessons.length }} 课</text>
+              <text>{{ $t("common.lessons", { completed: completedCount, total: visibleLessons.length }) }}</text>
             </view>
           </template>
         </PageHeader>
@@ -60,10 +82,10 @@ function openLesson(id: string) {
         <view class="course-progress">
           <view class="course-progress__main">
             <view class="course-progress__copy">
-              <text class="eyebrow">Overall progress</text>
-              <text class="course-progress__title">期权基础与策略路径</text>
+              <text class="eyebrow">{{ $t("learn.overall") }}</text>
+              <text class="course-progress__title">{{ $t("learn.pathTitle") }}</text>
               <text class="course-progress__desc">
-                当前建议从「{{ nextLesson?.title }}」继续。
+                {{ $t("learn.recommendation", { title: nextLesson?.title ?? "" }) }}
               </text>
             </view>
             <button
@@ -71,7 +93,7 @@ function openLesson(id: string) {
               @tap="nextLesson && openLesson(nextLesson.id)"
             >
               <AppIcon name="play" :size="15" color="#ffffff" />
-              <text>继续学习</text>
+              <text>{{ $t("learn.continueLearning") }}</text>
             </button>
           </view>
           <view class="course-progress__bar">
@@ -82,20 +104,20 @@ function openLesson(id: string) {
           </view>
           <view class="course-progress__stats">
             <view class="progress-stat">
-              <text class="progress-stat__label">完成进度</text>
+              <text class="progress-stat__label">{{ $t("learn.progress") }}</text>
               <text class="progress-stat__value mono">{{ Math.round(progress * 100) }}%</text>
             </view>
             <view class="progress-stat">
-              <text class="progress-stat__label">基础课程</text>
+              <text class="progress-stat__label">{{ $t("learn.foundationCourses") }}</text>
               <text class="progress-stat__value mono">{{ Math.round(foundationProgress * 100) }}%</text>
             </view>
             <view class="progress-stat">
-              <text class="progress-stat__label">高阶课程</text>
+              <text class="progress-stat__label">{{ $t("learn.advancedLevelCourses") }}</text>
               <text class="progress-stat__value mono">{{ Math.round(advancedProgress * 100) }}%</text>
             </view>
             <view class="progress-stat progress-stat--hint">
-              <text class="progress-stat__label">学习建议</text>
-              <text class="progress-stat__value">先完成风险指标</text>
+              <text class="progress-stat__label">{{ $t("learn.studyTip") }}</text>
+              <text class="progress-stat__value">{{ $t("learn.riskFirst") }}</text>
             </view>
           </view>
         </view>
@@ -103,8 +125,8 @@ function openLesson(id: string) {
         <view class="lesson-toolbar">
           <view class="section-heading lesson-toolbar__heading">
             <view class="section-heading__copy">
-              <text class="section-heading__title">课程目录</text>
-              <text class="section-heading__meta">{{ filteredLessons.length }} 节 · 约 {{ visibleLessons.reduce((sum, item) => sum + item.minutes, 0) }} 分钟</text>
+              <text class="section-heading__title">{{ $t("learn.directory") }}</text>
+              <text class="section-heading__meta">{{ $t("learn.directoryMeta", { count: filteredLessons.length, minutes: visibleLessons.reduce((sum, item) => sum + item.minutes, 0) }) }}</text>
             </view>
           </view>
           <view class="segmented">
@@ -115,7 +137,7 @@ function openLesson(id: string) {
               :class="{ 'segmented__item--active': filter === item }"
               @tap="filter = item"
             >
-              {{ item }}
+              {{ filterLabel(item) }}
             </button>
           </view>
         </view>
@@ -135,9 +157,9 @@ function openLesson(id: string) {
               <view class="lesson-card__meta">
                 <text>{{ lesson.chapter }}</text>
                 <view class="lesson-card__meta-dot" />
-                <text>{{ lesson.level }}</text>
+                <text>{{ levelLabel(lesson.level) }}</text>
                 <view class="lesson-card__meta-dot" />
-                <text>{{ lesson.minutes }} 分钟</text>
+                <text>{{ $t("common.minutes", { count: lesson.minutes }) }}</text>
               </view>
               <text class="lesson-card__title">{{ lesson.title }}</text>
             </view>
@@ -162,9 +184,9 @@ function openLesson(id: string) {
             <AppIcon name="shield" :size="20" color="#946617" />
           </view>
           <view class="learn-note__copy">
-            <text class="learn-note__title">学习内容不构成投资建议</text>
+            <text class="learn-note__title">{{ $t("learn.riskTitle") }}</text>
             <text class="learn-note__desc">
-              示例行情与收益均为演示数据，实际交易前请阅读交易所规则和券商风险揭示。
+              {{ $t("learn.riskCopy") }}
             </text>
           </view>
           <button
@@ -172,7 +194,7 @@ function openLesson(id: string) {
             class="button-quiet"
             @tap="openLesson('margin-risk')"
           >
-            <text>查看风险课</text>
+            <text>{{ $t("learn.viewRisk") }}</text>
             <AppIcon name="chevronRight" :size="14" color="#946617" />
           </button>
         </view>

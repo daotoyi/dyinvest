@@ -8,8 +8,10 @@ import { usePaperAccount } from "../../composables/usePaperAccount";
 import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
 import { formatMoney, formatPercent } from "../../domain/format";
-import { RISK_LABELS } from "../../domain/user";
 import { APP_VERSION } from "../../config/runtime";
+import { translate } from "../../i18n";
+import { riskLabel } from "../../composables/useLabels";
+import { useLocale } from "../../composables/useLocale";
 
 const { completedCount, progress, reset: resetLearning } = useLearningProgress();
 const {
@@ -28,15 +30,16 @@ const {
   logout,
 } = useAuth();
 const { visibleLessons } = useContentSettings();
+const { locale, setLocale } = useLocale();
 
 const level = computed(() => {
-  if (preferences.value) return RISK_LABELS[preferences.value.riskLevel];
-  if (completedCount.value >= 7) return "C4 · 积极型";
-  if (completedCount.value >= 3) return "C3 · 稳健型";
-  return "学习中";
+  if (preferences.value) return riskLabel(preferences.value.riskLevel);
+  if (completedCount.value >= 7) return translate("common.riskC4");
+  if (completedCount.value >= 3) return translate("common.riskC3");
+  return translate("common.learning");
 });
 const avatarLetter = computed(
-  () => displayName.value.trim().slice(0, 1) || "研",
+  () => displayName.value.trim().slice(0, 1) || "U",
 );
 function openLive() {
   uni.navigateTo({ url: "/pages/live/index" });
@@ -56,40 +59,40 @@ function openAdmin() {
 
 function handleLogout() {
   uni.showModal({
-    title: "退出登录",
-    content: "退出后账户和配置仍保存在本机，下次可以重新登录。",
-    confirmText: "退出登录",
+    title: translate("auth.logoutTitle"),
+    content: translate("auth.logoutContent"),
+    confirmText: translate("auth.logout"),
     confirmColor: "#cf5547",
     success: (result) => {
       if (!result.confirm) return;
-      logout();
-      uni.showToast({ title: "已退出登录", icon: "success" });
+      void logout().then(() => {
+        uni.showToast({ title: translate("auth.logoutSuccess"), icon: "success" });
+      });
     },
   });
 }
 
 function confirmResetPaper() {
   uni.showModal({
-    title: "重置模拟账户",
-    content: "将恢复初始资金和示例持仓，当前模拟订单与持仓会被清除。",
-    confirmText: "重置",
+    title: translate("profile.resetConfirmTitle"),
+    content: translate("profile.resetConfirmCopy"),
+    confirmText: translate("common.reset"),
     confirmColor: "#cf5547",
     success: (result) => {
       if (!result.confirm) return;
       resetPaper();
       resetLearning();
-      uni.showToast({ title: "本地数据已重置", icon: "success" });
+      uni.showToast({ title: translate("profile.resetDone"), icon: "success" });
     },
   });
 }
 
 function showDisclosure() {
   uni.showModal({
-    title: "风险与数据说明",
-    content:
-      "本应用当前为产品初版。行情、课程图表、策略参数和模拟交易均为演示用途，不构成投资建议，也不连接真实券商、交易所或资金账户。",
+    title: translate("profile.disclosureHeading"),
+    content: translate("profile.disclosureContent"),
     showCancel: false,
-    confirmText: "我知道了",
+    confirmText: translate("common.confirm"),
     confirmColor: "#0e6f5c",
   });
 }
@@ -100,9 +103,9 @@ function showDisclosure() {
     <view class="page-canvas">
       <view class="page-content">
         <PageHeader
-          title="我的"
-          eyebrow="Profile & settings"
-          subtitle="查看学习进度、模拟账户状态与风险披露。"
+          :title="$t('profile.title')"
+          :eyebrow="$t('profile.eyebrow')"
+          :subtitle="$t('profile.subtitle')"
         >
           <template #action>
             <button class="icon-button" @tap="showDisclosure">
@@ -119,7 +122,7 @@ function showDisclosure() {
               <view class="profile-identity__meta">
                 <view class="profile-identity__dot" />
                 <text>{{ level }}</text>
-                <text>{{ isLoggedIn ? accountIdentifier : "访客模式" }}</text>
+                <text>{{ isLoggedIn ? accountIdentifier : $t("common.guest") }}</text>
               </view>
             </view>
           </view>
@@ -128,7 +131,7 @@ function showDisclosure() {
               <view class="profile-admin-entry__icon">
                 <AppIcon name="chart" :size="17" color="#ffffff" />
               </view>
-              <text>管理后台</text>
+              <text>{{ $t("profile.adminConsole") }}</text>
               <AppIcon name="arrowUpRight" :size="14" color="#b9e5d8" />
             </button>
             <button
@@ -138,8 +141,8 @@ function showDisclosure() {
             >
               <AppIcon name="user" :size="18" color="#b9e5d8" />
               <view>
-                <text>账户状态</text>
-                <text>{{ isLoggedIn ? "已登录" : "未登录" }}</text>
+                <text>{{ $t("profile.accountStatus") }}</text>
+                <text>{{ isLoggedIn ? $t("common.signedIn") : $t("settings.notSignedIn") }}</text>
               </view>
             </button>
           </view>
@@ -153,7 +156,7 @@ function showDisclosure() {
               </view>
               <text class="profile-stat__meta">{{ completedCount }} / {{ visibleLessons.length }}</text>
             </view>
-            <text class="profile-stat__label">学习进度</text>
+            <text class="profile-stat__label">{{ $t("profile.learningProgress") }}</text>
             <text class="profile-stat__value mono">{{ Math.round(progress * 100) }}%</text>
             <view class="profile-stat__track">
               <view class="profile-stat__track-value" :style="{ width: `${progress * 100}%` }" />
@@ -165,15 +168,15 @@ function showDisclosure() {
               <view class="profile-stat__icon profile-stat__icon--blue">
                 <AppIcon name="activity" :size="19" color="#436d93" />
               </view>
-              <view class="chip">{{ activePositions.length }} 持仓</view>
+              <view class="chip">{{ $t("profile.positions", { count: activePositions.length }) }}</view>
             </view>
-            <text class="profile-stat__label">模拟权益</text>
+            <text class="profile-stat__label">{{ $t("profile.paperEquity") }}</text>
             <text class="profile-stat__value mono">{{ formatMoney(totalEquity, 0) }}</text>
             <text
               class="profile-stat__change mono"
               :class="totalReturn >= 0 ? 'positive' : 'negative'"
             >
-              {{ formatPercent(totalReturn, 2, true) }} 累计
+              {{ $t("profile.cumulative", { value: formatPercent(totalReturn, 2, true) }) }}
             </text>
           </view>
 
@@ -181,7 +184,32 @@ function showDisclosure() {
 
         <view class="profile-sections">
           <view class="settings-group card">
-            <text class="settings-group__title">账户、交易与学习</text>
+            <text class="settings-group__title">{{ $t("profile.accountSection") }}</text>
+            <view class="settings-row settings-row--static">
+              <view class="settings-row__icon">
+                <AppIcon name="sliders" :size="18" color="#52605c" />
+              </view>
+              <view class="settings-row__copy">
+                <text class="settings-row__title">{{ $t("settings.languageLabel") }}</text>
+                <text class="settings-row__desc">{{ $t("settings.languageMeta") }}</text>
+              </view>
+              <view class="settings-language">
+                <button
+                  class="settings-language__item"
+                  :class="{ 'settings-language__item--active': locale === 'en' }"
+                  @tap="setLocale('en')"
+                >
+                  EN
+                </button>
+                <button
+                  class="settings-language__item"
+                  :class="{ 'settings-language__item--active': locale === 'zh-CN' }"
+                  @tap="setLocale('zh-CN')"
+                >
+                  中文
+                </button>
+              </view>
+            </view>
             <button
               v-if="isLoggedIn"
               class="settings-row"
@@ -191,10 +219,10 @@ function showDisclosure() {
                 <AppIcon name="settings" :size="18" color="#0e6f5c" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">账户与偏好设置</text>
-                <text class="settings-row__desc">昵称、风险偏好、默认策略和数量</text>
+                <text class="settings-row__title">{{ $t("profile.settingsTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.settingsDesc") }}</text>
               </view>
-              <view class="settings-row__status">{{ RISK_LABELS[preferences?.riskLevel ?? "C3"] }}</view>
+              <view class="settings-row__status">{{ riskLabel(preferences?.riskLevel ?? "C3") }}</view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
             <button
@@ -206,10 +234,10 @@ function showDisclosure() {
                 <AppIcon name="userPlus" :size="18" color="#0e6f5c" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">登录或注册</text>
-                <text class="settings-row__desc">创建本地账户并保存个人配置</text>
+                <text class="settings-row__title">{{ $t("profile.loginTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.loginDesc") }}</text>
               </view>
-              <view class="settings-row__status">未登录</view>
+              <view class="settings-row__status">{{ $t("settings.notSignedIn") }}</view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
             <button class="settings-row" @tap="openLive">
@@ -217,10 +245,10 @@ function showDisclosure() {
                 <AppIcon name="shield" :size="18" color="#946617" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">实盘交易接入</text>
-                <text class="settings-row__desc">券商授权、行情与风控要求</text>
+                <text class="settings-row__title">{{ $t("profile.liveTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.liveDesc") }}</text>
               </view>
-              <view class="settings-row__status">未接入</view>
+              <view class="settings-row__status">{{ $t("nav.pending") }}</view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
             <button class="settings-row" @tap="showDisclosure">
@@ -228,22 +256,22 @@ function showDisclosure() {
                 <AppIcon name="bookCheck" :size="18" color="#436d93" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">风险与内容说明</text>
-                <text class="settings-row__desc">数据来源、模拟收益和免责声明</text>
+                <text class="settings-row__title">{{ $t("profile.disclosureTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.disclosureDesc") }}</text>
               </view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
           </view>
 
           <view class="settings-group card">
-            <text class="settings-group__title">本地数据</text>
+            <text class="settings-group__title">{{ $t("profile.cloudData") }}</text>
             <button class="settings-row" @tap="confirmResetPaper">
               <view class="settings-row__icon settings-row__icon--red">
                 <AppIcon name="reset" :size="18" color="#cf5547" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">重置演示数据</text>
-                <text class="settings-row__desc">恢复模拟账户和学习进度</text>
+                <text class="settings-row__title">{{ $t("profile.resetTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.resetDesc") }}</text>
               </view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
@@ -252,8 +280,8 @@ function showDisclosure() {
                 <AppIcon name="lock" :size="18" color="#52605c" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">隐私与账户安全</text>
-                <text class="settings-row__desc">当前版本不采集券商登录信息</text>
+                <text class="settings-row__title">{{ $t("profile.securityTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.securityDesc") }}</text>
               </view>
             </view>
             <button
@@ -265,8 +293,8 @@ function showDisclosure() {
                 <AppIcon name="logOut" :size="18" color="#cf5547" />
               </view>
               <view class="settings-row__copy">
-                <text class="settings-row__title">退出登录</text>
-                <text class="settings-row__desc">本机账户和配置会继续保留</text>
+                <text class="settings-row__title">{{ $t("profile.logoutTitle") }}</text>
+                <text class="settings-row__desc">{{ $t("profile.logoutDesc") }}</text>
               </view>
               <AppIcon name="chevronRight" :size="15" color="#95a09c" />
             </button>
@@ -276,19 +304,19 @@ function showDisclosure() {
         <view class="risk-disclosure">
           <view class="risk-disclosure__head">
             <AppIcon name="alert" :size="17" color="#946617" />
-            <text>风险提示</text>
+            <text>{{ $t("profile.disclosureHeading") }}</text>
           </view>
           <text class="risk-disclosure__text">
-            期权交易具有杠杆和到期归零风险，卖方可能承担超过权利金的损失。本应用当前仅用于产品验证与教育演示，所有行情、损益和收益均为模拟数据，不构成投资建议。
+            {{ $t("profile.riskNotice") }}
           </text>
         </view>
 
         <view class="profile-footer">
-          <text>道元期权 · DAO OPTIONS</text>
+          <text>{{ $t("app.name") }} · {{ $t("app.meta") }}</text>
           <view class="profile-footer__dot" />
           <text>v{{ APP_VERSION }}</text>
           <view class="profile-footer__dot" />
-          <text>本地演示版</text>
+          <text>{{ $t("profile.demoVersion") }}</text>
         </view>
       </view>
     </view>
@@ -566,6 +594,30 @@ function showDisclosure() {
 .settings-row__status {
   color: var(--muted-light);
   font-size: 8px;
+}
+
+.settings-language {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-soft);
+}
+
+.settings-language__item {
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.settings-language__item--active {
+  background: #ffffff;
+  color: var(--teal);
+  box-shadow: 0 1px 2px rgba(20, 40, 35, 0.08);
 }
 
 .settings-row--static {

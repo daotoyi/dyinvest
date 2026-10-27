@@ -1,5 +1,6 @@
 import { blackScholesGreeks, blackScholesPrice, round, yearsBetween } from "../domain/optionMath";
 import type { OptionChainRow, OptionQuote, OptionType } from "../domain/types";
+import { getAppLocale } from "../i18n";
 
 export const DEMO_SNAPSHOT_MS = Date.parse("2026-10-23T15:00:00+08:00");
 export const DEMO_SNAPSHOT_LABEL = "10/23 15:00 · 演示数据";
@@ -97,9 +98,25 @@ export function findQuoteById(id: string) {
 }
 
 export function optionDisplayName(type: OptionType, strike: number) {
-  return `300ETF${type === "call" ? "购" : "沽"}${DEMO_EXPIRY_LABEL.replace("月", "月")}${Math.round(
-    strike * 1000,
-  )}`;
+  const strikeLabel = Math.round(strike * 1000);
+  if (getAppLocale() === "en") {
+    return `300ETF ${type === "call" ? "Call" : "Put"} Nov 25 ${strikeLabel}`;
+  }
+  return `300ETF${type === "call" ? "购" : "沽"}${DEMO_EXPIRY_LABEL}${strikeLabel}`;
+}
+
+export function demoSnapshotLabel() {
+  return getAppLocale() === "en"
+    ? "10/23 15:00 · Demo data"
+    : DEMO_SNAPSHOT_LABEL;
+}
+
+export function demoExpiryLabel() {
+  return getAppLocale() === "en" ? "Nov 25" : DEMO_EXPIRY_LABEL;
+}
+
+export function underlyingDisplayName() {
+  return getAppLocale() === "en" ? "CSI 300 ETF" : underlying.name;
 }
 
 export const overviewQuotes = [findQuote("call", 4.1), findQuote("put", 4.1)]

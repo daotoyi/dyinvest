@@ -5,7 +5,7 @@ import AppIcon from "../../components/AppIcon.vue";
 import AppShell from "../../components/AppShell.vue";
 import PayoffChart from "../../components/PayoffChart.vue";
 import PageHeader from "../../components/PageHeader.vue";
-import { getLesson, lessons } from "../../data/lessons";
+import { getLesson, localizedLessons } from "../../data/lessons";
 import { underlying } from "../../data/options";
 import {
   buildStrategyLegs,
@@ -13,6 +13,7 @@ import {
 } from "../../data/strategies";
 import { useLearningProgress } from "../../composables/useLearningProgress";
 import { formatSignedMoney } from "../../domain/format";
+import { translate } from "../../i18n";
 
 const lessonId = ref("option-basics");
 const selectedAnswer = ref<number | null>(null);
@@ -23,16 +24,21 @@ onLoad((query) => {
   if (query?.id) lessonId.value = String(query.id);
 });
 
-const lesson = computed(() => getLesson(lessonId.value) ?? lessons[0]);
+const lesson = computed(
+  () => getLesson(lessonId.value) ?? localizedLessons.value[0],
+);
 const lessonIndex = computed(() =>
-  lessons.findIndex((item) => item.id === lesson.value?.id),
+  localizedLessons.value.findIndex((item) => item.id === lesson.value?.id),
 );
 const previousLesson = computed(() =>
-  lessonIndex.value > 0 ? lessons[lessonIndex.value - 1] : undefined,
+  lessonIndex.value > 0
+    ? localizedLessons.value[lessonIndex.value - 1]
+    : undefined,
 );
 const nextLesson = computed(() =>
-  lessonIndex.value >= 0 && lessonIndex.value < lessons.length - 1
-    ? lessons[lessonIndex.value + 1]
+  lessonIndex.value >= 0 &&
+  lessonIndex.value < localizedLessons.value.length - 1
+    ? localizedLessons.value[lessonIndex.value + 1]
     : undefined,
 );
 const chartTemplate = computed(() => {
@@ -40,7 +46,8 @@ const chartTemplate = computed(() => {
     return "iron-condor";
   }
   if (lesson.value?.id === "spreads") return "bull-call-spread";
-  if (lesson.value?.level === "进阶") return "long-straddle";
+  if (lesson.value?.level === "进阶" || lesson.value?.level === "高阶")
+    return "long-straddle";
   return "long-call";
 });
 const chartLegs = computed(() => buildStrategyLegs(chartTemplate.value));
@@ -68,7 +75,14 @@ function openLesson(id: string) {
 function markComplete() {
   if (!lesson.value) return;
   complete(lesson.value.id);
-  uni.showToast({ title: "课程已完成", icon: "success" });
+  uni.showToast({ title: translate("lesson.completed"), icon: "success" });
+}
+
+function levelLabel(level?: string) {
+  if (level === "基础") return translate("common.foundations");
+  if (level === "进阶") return translate("common.advanced");
+  if (level === "高阶") return translate("common.advancedLevel");
+  return level ?? "";
 }
 </script>
 
@@ -78,14 +92,14 @@ function markComplete() {
       <view class="page-content lesson-page">
         <PageHeader
           back
-          :title="lesson?.title ?? '课程'"
+          :title="lesson?.title ?? $t('learn.title')"
           :eyebrow="lesson?.chapter"
           :subtitle="lesson?.summary"
         >
           <template #action>
             <view class="lesson-progress-chip">
               <AppIcon name="clock" :size="14" color="#6d7a76" />
-              <text>{{ lesson?.minutes }} 分钟</text>
+              <text>{{ $t("common.minutes", { count: lesson?.minutes }) }}</text>
             </view>
           </template>
         </PageHeader>
@@ -97,7 +111,7 @@ function markComplete() {
                 <AppIcon name="target" :size="21" color="#0e6f5c" />
               </view>
               <view class="lesson-keyidea__copy">
-                <text class="eyebrow">Key idea</text>
+                <text class="eyebrow">{{ $t("lesson.keyIdea") }}</text>
                 <text class="lesson-keyidea__text">{{ lesson?.keyIdea }}</text>
               </view>
             </view>
@@ -132,10 +146,10 @@ function markComplete() {
             <view class="lesson-lab">
               <view class="section-heading">
                 <view class="section-heading__copy">
-                  <text class="section-heading__title">把价格拖到不同位置</text>
-                  <text class="section-heading__meta">观察到期损益，而不是只看当前权利金</text>
+                  <text class="section-heading__title">{{ $t("lesson.dragPrice") }}</text>
+                  <text class="section-heading__meta">{{ $t("lesson.dragHint") }}</text>
                 </view>
-                <view class="chip chip--teal">交互演示</view>
+                <view class="chip chip--teal">{{ $t("lesson.interactive") }}</view>
               </view>
 
               <view class="lesson-lab__chart">
@@ -148,7 +162,7 @@ function markComplete() {
               </view>
               <view class="lesson-lab__control">
                 <view class="lesson-lab__control-head">
-                  <text>标的到期价格</text>
+                  <text>{{ $t("lesson.underlyingExpiry") }}</text>
                   <text class="mono">{{ scenarioPrice.toFixed(3) }}</text>
                 </view>
                 <slider
@@ -164,7 +178,7 @@ function markComplete() {
                   @change="scenarioPrice = Number($event.detail.value)"
                 />
                 <view class="lesson-lab__result">
-                  <text>该价格下的到期损益</text>
+                  <text>{{ $t("lesson.expiryPnl") }}</text>
                   <text
                     class="mono"
                     :class="scenarioPnl >= 0 ? 'positive' : 'negative'"
@@ -173,7 +187,7 @@ function markComplete() {
                   </text>
                 </view>
                 <text class="lesson-lab__disclaimer">
-                  以一手示例组合计算，不含手续费、滑点与真实保证金变化。
+                  {{ $t("lesson.calcNote") }}
                 </text>
               </view>
             </view>
@@ -181,10 +195,10 @@ function markComplete() {
             <view class="lesson-quiz">
               <view class="lesson-quiz__head">
                 <view>
-                  <text class="eyebrow">Quick check</text>
-                  <text class="lesson-quiz__title">用一道题确认理解</text>
+                  <text class="eyebrow">{{ $t("lesson.quickCheck") }}</text>
+                  <text class="lesson-quiz__title">{{ $t("lesson.quizTitle") }}</text>
                 </view>
-                <view class="chip">{{ selectedAnswer === null ? "未作答" : answeredCorrectly ? "回答正确" : "再想一想" }}</view>
+                <view class="chip">{{ selectedAnswer === null ? $t("lesson.unanswered") : answeredCorrectly ? $t("lesson.correct") : $t("lesson.incorrect") }}</view>
               </view>
               <text class="lesson-quiz__question">{{ lesson?.quiz.question }}</text>
               <view class="lesson-quiz__options">
@@ -224,10 +238,10 @@ function markComplete() {
             <view class="lesson-complete">
               <view>
                 <text class="lesson-complete__title">
-                  {{ isCompleted(lesson?.id ?? "") ? "这节课已经完成" : "完成本课并记录进度" }}
+                  {{ isCompleted(lesson?.id ?? "") ? $t("lesson.completedTitle") : $t("lesson.markTitle") }}
                 </text>
                 <text class="lesson-complete__desc">
-                  完成状态保存在当前设备，可在「我的」中查看。
+                  {{ $t("lesson.progressNote") }}
                 </text>
               </view>
               <button
@@ -236,7 +250,7 @@ function markComplete() {
                 @tap="markComplete"
               >
                 <AppIcon name="check" :size="16" color="#ffffff" />
-                <text>{{ isCompleted(lesson?.id ?? "") ? "已完成" : "完成课程" }}</text>
+                <text>{{ isCompleted(lesson?.id ?? "") ? $t("lesson.completedButton") : $t("lesson.complete") }}</text>
               </button>
             </view>
 
@@ -248,7 +262,7 @@ function markComplete() {
               >
                 <AppIcon name="arrowLeft" :size="17" color="#52605c" />
                 <view>
-                  <text class="lesson-pagination__label">上一课</text>
+                  <text class="lesson-pagination__label">{{ $t("lesson.previous") }}</text>
                   <text class="lesson-pagination__title">{{ previousLesson.title }}</text>
                 </view>
               </button>
@@ -259,7 +273,7 @@ function markComplete() {
                 @tap="openLesson(nextLesson.id)"
               >
                 <view>
-                  <text class="lesson-pagination__label">下一课</text>
+                  <text class="lesson-pagination__label">{{ $t("lesson.next") }}</text>
                   <text class="lesson-pagination__title">{{ nextLesson.title }}</text>
                 </view>
                 <AppIcon name="arrowRight" :size="17" color="#52605c" />
@@ -269,19 +283,19 @@ function markComplete() {
 
           <view class="lesson-aside">
             <view class="aside-card card">
-              <text class="aside-card__label">本课要点</text>
+              <text class="aside-card__label">{{ $t("lesson.takeaways") }}</text>
               <view class="aside-points">
                 <view class="aside-point">
                   <view class="aside-point__dot" />
-                  <text>合约方向、行权价和到期日共同决定风险。</text>
+                  <text>{{ $t("lesson.takeaway1") }}</text>
                 </view>
                 <view class="aside-point">
                   <view class="aside-point__dot" />
-                  <text>方向正确不代表一定盈利，时间和波动率同样重要。</text>
+                  <text>{{ $t("lesson.takeaway2") }}</text>
                 </view>
                 <view class="aside-point">
                   <view class="aside-point__dot" />
-                  <text>先看最大亏损，再比较潜在收益。</text>
+                  <text>{{ $t("lesson.takeaway3") }}</text>
                 </view>
               </view>
             </view>
@@ -289,24 +303,24 @@ function markComplete() {
             <view class="aside-card card aside-card--risk">
               <view class="aside-risk__head">
                 <AppIcon name="shield" :size="18" color="#946617" />
-                <text>风险提示</text>
+                <text>{{ $t("lesson.riskNoticeTitle") }}</text>
               </view>
               <text class="aside-risk__text">
-                本课程与图表均为教育演示，不构成针对任何人的交易建议。期权可能损失全部权利金。
+                {{ $t("lesson.riskNoticeText") }}
               </text>
             </view>
 
             <view class="aside-card card">
-              <text class="aside-card__label">学习进度</text>
+              <text class="aside-card__label">{{ $t("learn.progress") }}</text>
               <view class="aside-progress">
                 <view class="aside-progress__copy">
-                  <text class="mono">{{ lessonIndex + 1 }} / {{ lessons.length }}</text>
-                  <text>{{ lesson?.level }}课程</text>
+                  <text class="mono">{{ lessonIndex + 1 }} / {{ localizedLessons.length }}</text>
+                  <text>{{ $t("lesson.courseLabel", { level: levelLabel(lesson?.level) }) }}</text>
                 </view>
                 <view class="aside-progress__track">
                   <view
                     class="aside-progress__value"
-                    :style="{ width: `${((lessonIndex + 1) / lessons.length) * 100}%` }"
+                    :style="{ width: `${((lessonIndex + 1) / localizedLessons.length) * 100}%` }"
                   />
                 </view>
               </view>

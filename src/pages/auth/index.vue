@@ -3,10 +3,10 @@ import { computed, ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import AppIcon from "../../components/AppIcon.vue";
 import { useAuth } from "../../composables/useAuth";
-import {
-  EXPERIENCE_LABELS,
-  RISK_LABELS,
-} from "../../domain/user";
+import { translate } from "../../i18n";
+import { experienceLabel, riskLabel } from "../../composables/useLabels";
+import { useLocale } from "../../composables/useLocale";
+import { usePageTitle } from "../../composables/usePageTitle";
 
 const {
   currentUser,
@@ -19,6 +19,8 @@ const {
   register,
   logout,
 } = useAuth();
+const { locale, setLocale } = useLocale();
+usePageTitle("auth.pageTitle");
 
 const mode = ref<"login" | "register">("register");
 const username = ref("");
@@ -55,7 +57,9 @@ onLoad((query) => {
 });
 
 const activeTitle = computed(() =>
-  mode.value === "login" ? "登录本地账户" : "创建本地账户",
+  mode.value === "login"
+    ? translate("auth.loginTitle")
+    : translate("auth.registerTitle"),
 );
 
 function switchMode(nextMode: "login" | "register") {
@@ -93,11 +97,10 @@ function finishAuth(message: string) {
 
 function showPhoneUnavailable() {
   uni.showModal({
-    title: "手机号快捷登录",
-    content:
-      "微信一键获取手机号仅在微信小程序内可用。H5 需要接入短信验证码服务和后端会话接口。",
+    title: translate("auth.quickPhone"),
+    content: translate("auth.phoneUnavailable"),
     showCancel: false,
-    confirmText: "我知道了",
+    confirmText: translate("common.confirm"),
     confirmColor: "#0e6f5c",
   });
 }
@@ -109,15 +112,15 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
     const cancelled =
       detail?.errMsg?.includes("deny") || detail?.errMsg?.includes("cancel");
     errorMessage.value = cancelled
-      ? "你已取消手机号授权"
-      : `微信未返回手机号授权码${detail?.errMsg ? `：${detail.errMsg}` : "，请稍后重试"}`;
+      ? translate("auth.phoneCancelled")
+      : translate("auth.phoneCodeMissing");
     return;
   }
 
   phoneLoading.value = true;
   try {
-    await phoneLogin({ code: detail.code });
-    finishAuth("手机号登录成功");
+    await phoneLogin({ code: detail.code, language: locale.value });
+    finishAuth(translate("auth.phoneSuccess"));
   } catch (error) {
     const failure = error as PhoneLoginFailure;
     const code = failure?.errCode ?? failure?.code;
@@ -125,8 +128,8 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
       failure?.errMsg ||
       failure?.message ||
       (error instanceof Error ? error.message : "");
-    errorMessage.value = `${message || "手机号快捷登录失败，请稍后重试"}${
-      code ? `（错误码 ${code}）` : ""
+    errorMessage.value = `${message || translate("common.error")}${
+      code ? ` (${code})` : ""
     }`;
   } finally {
     phoneLoading.value = false;
@@ -136,24 +139,24 @@ async function handleGetPhoneNumber(event: PhoneNumberEvent) {
 async function submit() {
   errorMessage.value = "";
   if (!username.value.trim()) {
-    errorMessage.value = "请输入用户名";
+    errorMessage.value = translate("auth.missingUsername");
     return;
   }
   if (!password.value) {
-    errorMessage.value = "请输入密码";
+    errorMessage.value = translate("auth.missingPassword");
     return;
   }
   if (mode.value === "register") {
     if (!nickname.value.trim()) {
-      errorMessage.value = "请输入昵称";
+      errorMessage.value = translate("auth.missingNickname");
       return;
     }
     if (password.value !== confirmPassword.value) {
-      errorMessage.value = "两次输入的密码不一致";
+      errorMessage.value = translate("auth.passwordMismatch");
       return;
     }
     if (!agreed.value) {
-      errorMessage.value = "请先确认风险提示与本地数据说明";
+      errorMessage.value = translate("auth.acceptAgreement");
       return;
     }
   }
@@ -162,18 +165,19 @@ async function submit() {
   try {
     if (mode.value === "login") {
       await login(username.value, password.value);
-      finishAuth("登录成功");
+      finishAuth(translate("auth.loginSuccess"));
     } else {
       await register({
         username: username.value,
         password: password.value,
         nickname: nickname.value,
+        language: locale.value,
       });
-      finishAuth("注册成功");
+      finishAuth(translate("auth.registerSuccess"));
     }
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : "操作失败，请稍后重试";
+      error instanceof Error ? error.message : translate("common.error");
   } finally {
     submitting.value = false;
   }
@@ -181,14 +185,14 @@ async function submit() {
 
 function handleLogout() {
   uni.showModal({
-    title: "退出当前账户",
-    content: "退出后，本机账户及配置仍会保留，下次可以重新登录。",
-    confirmText: "退出登录",
+    title: translate("auth.logoutTitle"),
+    content: translate("auth.logoutContent"),
+    confirmText: translate("auth.logout"),
     confirmColor: "#cf5547",
     success: (result) => {
       if (!result.confirm) return;
       void logout().then(() => {
-        uni.showToast({ title: "已退出登录", icon: "success" });
+        uni.showToast({ title: translate("auth.logoutSuccess"), icon: "success" });
       });
     },
   });
@@ -202,29 +206,29 @@ function handleLogout() {
         <view class="auth-brand">
           <view class="auth-brand__mark">θ</view>
           <view>
-            <text class="auth-brand__name">道元期权</text>
-            <text class="auth-brand__meta">DAO OPTIONS</text>
+            <text class="auth-brand__name">{{ $t("app.name") }}</text>
+            <text class="auth-brand__meta">{{ $t("app.meta") }}</text>
           </view>
         </view>
 
         <view class="auth-brand__content">
-          <text class="auth-brand__eyebrow">Your local workspace</text>
-          <text class="auth-brand__title">把学习、策略和偏好，留在自己的账户里。</text>
+          <text class="auth-brand__eyebrow">{{ $t("auth.brandEyebrow") }}</text>
+          <text class="auth-brand__title">{{ $t("auth.brandTitle") }}</text>
           <text class="auth-brand__desc">
-            当前版本使用本机账户。配置会绑定到具体用户，切换账户后仍然可以恢复。
+            {{ $t("auth.brandDesc") }}
           </text>
           <view class="auth-feature-list">
             <view class="auth-feature">
               <AppIcon name="bookCheck" :size="18" color="#b9e5d8" />
-              <text>保存学习与风险偏好</text>
+              <text>{{ $t("auth.featureLearn") }}</text>
             </view>
             <view class="auth-feature">
               <AppIcon name="chart" :size="18" color="#b9e5d8" />
-              <text>记住默认策略和下单数量</text>
+              <text>{{ $t("auth.featureStrategy") }}</text>
             </view>
             <view class="auth-feature">
               <AppIcon name="lock" :size="18" color="#b9e5d8" />
-              <text>密码使用随机盐和哈希保存</text>
+              <text>{{ $t("auth.featureSecurity") }}</text>
             </view>
           </view>
         </view>
@@ -232,13 +236,29 @@ function handleLogout() {
         <view class="auth-brand__footer">
           <view class="auth-brand__status">
             <view class="auth-brand__dot" />
-            <text>本地账户模式</text>
+            <text>{{ $t("auth.cloudMode") }}</text>
           </view>
-          <text>未接入云端同步</text>
+          <text>{{ $t("auth.cloudSyncEnabled") }}</text>
         </view>
       </view>
 
       <view class="auth-form-panel">
+        <view class="auth-lang">
+          <button
+            class="auth-lang__item"
+            :class="{ 'auth-lang__item--active': locale === 'en' }"
+            @tap="setLocale('en')"
+          >
+            EN
+          </button>
+          <button
+            class="auth-lang__item"
+            :class="{ 'auth-lang__item--active': locale === 'zh-CN' }"
+            @tap="setLocale('zh-CN')"
+          >
+            中文
+          </button>
+        </view>
         <button class="auth-back" @tap="goBack">
           <AppIcon name="arrowLeft" :size="19" color="#52605c" />
         </button>
@@ -247,38 +267,38 @@ function handleLogout() {
           <view class="signed-in__badge">
             <AppIcon name="circleCheck" :size="24" color="#0e6f5c" />
           </view>
-          <text class="signed-in__eyebrow">Signed in</text>
-          <text class="signed-in__title">已登录 {{ preferences?.nickname }}</text>
+          <text class="signed-in__eyebrow">{{ $t("common.signedIn") }}</text>
+          <text class="signed-in__title">{{ $t("auth.signedInAs", { name: preferences?.nickname }) }}</text>
           <text class="signed-in__desc">
-            {{ accountIdentifier }} · {{ RISK_LABELS[preferences?.riskLevel ?? "C3"] }}
+            {{ accountIdentifier }} · {{ riskLabel(preferences?.riskLevel ?? "C3") }}
           </text>
           <view class="signed-in__summary">
             <view class="signed-in__summary-item">
-              <text>经验</text>
-              <text>{{ EXPERIENCE_LABELS[preferences?.experience ?? "beginner"] }}</text>
+              <text>{{ $t("auth.experience") }}</text>
+              <text>{{ experienceLabel(preferences?.experience ?? "beginner") }}</text>
             </view>
             <view class="signed-in__summary-item">
-              <text>本地账户</text>
-              <text>已启用</text>
+              <text>{{ $t("auth.cloudAccount") }}</text>
+              <text>{{ $t("auth.enabled") }}</text>
             </view>
           </view>
           <button class="button-primary signed-in__primary" @tap="openSettings">
             <AppIcon name="sliders" :size="16" color="#ffffff" />
-            <text>编辑账户配置</text>
+            <text>{{ $t("auth.editPreferences") }}</text>
           </button>
           <button class="button-secondary signed-in__secondary" @tap="handleLogout">
             <AppIcon name="logOut" :size="16" color="#17211e" />
-            <text>退出登录</text>
+            <text>{{ $t("auth.logout") }}</text>
           </button>
-          <button class="button-quiet signed-in__home" @tap="goHome">返回首页</button>
+          <button class="button-quiet signed-in__home" @tap="goHome">{{ $t("auth.backHome") }}</button>
         </view>
 
         <view v-else class="auth-form-wrap">
           <view class="auth-form-head">
-            <text class="eyebrow">Local account</text>
+            <text class="eyebrow">{{ $t("auth.loginMeta") }}</text>
             <text class="auth-form-title">{{ activeTitle }}</text>
             <text class="auth-form-desc">
-              可使用微信手机号快捷登录，也可以创建独立的本地用户名账户。
+              {{ $t("auth.formDesc") }}
             </text>
           </view>
 
@@ -293,8 +313,8 @@ function handleLogout() {
               <AppIcon name="messageCircle" :size="20" color="#ffffff" />
             </view>
             <view class="phone-login__copy">
-              <text class="phone-login__title">手机号快捷登录</text>
-              <text class="phone-login__desc">微信授权手机号，一键验证登录</text>
+              <text class="phone-login__title">{{ $t("auth.quickPhone") }}</text>
+              <text class="phone-login__desc">{{ $t("auth.phoneQuickDesc") }}</text>
             </view>
             <AppIcon name="chevronRight" :size="17" color="#94d7c5" />
           </button>
@@ -306,8 +326,8 @@ function handleLogout() {
               <AppIcon name="messageCircle" :size="20" color="#ffffff" />
             </view>
             <view class="phone-login__copy">
-              <text class="phone-login__title">手机号快捷登录</text>
-              <text class="phone-login__desc">微信小程序内可一键授权手机号</text>
+              <text class="phone-login__title">{{ $t("auth.quickPhone") }}</text>
+              <text class="phone-login__desc">{{ $t("auth.phoneUnavailableDesc") }}</text>
             </view>
             <AppIcon name="chevronRight" :size="17" color="#94d7c5" />
           </button>
@@ -315,7 +335,7 @@ function handleLogout() {
 
           <view class="auth-divider">
             <view class="auth-divider__line" />
-            <text>或使用本地账户</text>
+            <text>{{ $t("auth.orUsername") }}</text>
             <view class="auth-divider__line" />
           </view>
 
@@ -325,20 +345,20 @@ function handleLogout() {
               :class="{ 'segmented__item--active': mode === 'login' }"
               @tap="switchMode('login')"
             >
-              登录
+              {{ $t("auth.login") }}
             </button>
             <button
               class="segmented__item"
               :class="{ 'segmented__item--active': mode === 'register' }"
               @tap="switchMode('register')"
             >
-              注册
+              {{ $t("auth.register") }}
             </button>
           </view>
 
           <view class="auth-fields">
             <view v-if="mode === 'register'" class="auth-field">
-              <text class="auth-field__label">昵称</text>
+              <text class="auth-field__label">{{ $t("auth.nickname") }}</text>
               <view class="auth-input">
                 <AppIcon name="user" :size="17" color="#7b8783" />
                 <input
@@ -346,13 +366,13 @@ function handleLogout() {
                   class="auth-input__field"
                   type="text"
                   maxlength="20"
-                  placeholder="用于显示的名称"
+                  :placeholder="$t('auth.nicknamePlaceholder')"
                 />
               </view>
             </view>
 
             <view class="auth-field">
-              <text class="auth-field__label">用户名</text>
+              <text class="auth-field__label">{{ $t("auth.username") }}</text>
               <view class="auth-input">
                 <AppIcon name="userPlus" :size="17" color="#7b8783" />
                 <input
@@ -360,13 +380,13 @@ function handleLogout() {
                   class="auth-input__field"
                   type="text"
                   maxlength="20"
-                  placeholder="字母开头，3-20 位"
+                  :placeholder="$t('auth.usernamePlaceholder')"
                 />
               </view>
             </view>
 
             <view class="auth-field">
-              <text class="auth-field__label">密码</text>
+              <text class="auth-field__label">{{ $t("auth.password") }}</text>
               <view class="auth-input">
                 <AppIcon name="lock" :size="17" color="#7b8783" />
                 <input
@@ -374,7 +394,7 @@ function handleLogout() {
                   class="auth-input__field"
                   type="text"
                   maxlength="64"
-                  placeholder="至少 8 位"
+                  :placeholder="$t('auth.passwordPlaceholder')"
                   :password="!showPassword"
                   confirm-type="done"
                   @confirm="submit"
@@ -390,7 +410,7 @@ function handleLogout() {
             </view>
 
             <view v-if="mode === 'register'" class="auth-field">
-              <text class="auth-field__label">确认密码</text>
+              <text class="auth-field__label">{{ $t("auth.confirmPassword") }}</text>
               <view class="auth-input">
                 <AppIcon name="keyRound" :size="17" color="#7b8783" />
                 <input
@@ -398,7 +418,7 @@ function handleLogout() {
                   class="auth-input__field"
                   type="text"
                   maxlength="64"
-                  placeholder="再次输入密码"
+                  :placeholder="$t('auth.confirmPlaceholder')"
                   :password="!showConfirmPassword"
                   confirm-type="done"
                   @confirm="submit"
@@ -425,7 +445,7 @@ function handleLogout() {
             <view class="auth-agreement__box" :class="{ 'auth-agreement__box--checked': agreed }">
               <AppIcon v-if="agreed" name="check" :size="12" color="#ffffff" />
             </view>
-            <text>我已知晓本地数据说明和期权交易风险</text>
+            <text>{{ $t("auth.agreement") }}</text>
           </button>
 
           <view v-if="errorMessage" class="auth-error">
@@ -443,17 +463,17 @@ function handleLogout() {
               :size="16"
               color="#ffffff"
             />
-            <text>{{ submitting ? "处理中" : mode === "login" ? "登录账户" : "创建账户" }}</text>
+            <text>{{ submitting ? $t("auth.submitting") : mode === "login" ? $t("auth.login") : $t("auth.register") }}</text>
           </button>
 
           <button class="button-quiet auth-guest" @tap="goHome">
-            暂不登录，以访客模式继续
+            {{ $t("auth.guestContinue") }}
           </button>
 
           <view class="auth-local-note">
             <AppIcon name="info" :size="14" color="#7b8783" />
             <text>
-              手机号由微信授权并仅用于登录识别；本地用户名账户不支持跨设备同步。
+              {{ $t("auth.localDataNote") }}
             </text>
           </view>
         </view>
@@ -616,6 +636,33 @@ function handleLogout() {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface);
+}
+
+.auth-lang {
+  position: absolute;
+  top: 26px;
+  right: 26px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.auth-lang__item {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.auth-lang__item--active {
+  background: #ffffff;
+  color: var(--teal);
+  box-shadow: 0 1px 2px rgba(20, 40, 35, 0.08);
 }
 
 .auth-form-wrap,

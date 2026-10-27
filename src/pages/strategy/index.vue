@@ -6,17 +6,17 @@ import AppShell from "../../components/AppShell.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import PayoffChart from "../../components/PayoffChart.vue";
 import {
-  DEMO_EXPIRY_LABEL,
-  DEMO_SNAPSHOT_LABEL,
+  demoExpiryLabel,
+  demoSnapshotLabel,
   findQuote,
   optionChain,
   underlying,
+  underlyingDisplayName,
 } from "../../data/options";
 import {
   buildStrategyLegs,
   calculateStrategyMetrics,
   elapsedDaysLabel,
-  strategyTemplates,
 } from "../../data/strategies";
 import { useAuth } from "../../composables/useAuth";
 import { useContentSettings } from "../../composables/useContentSettings";
@@ -28,6 +28,7 @@ import {
   formatVol,
   optionLabel,
 } from "../../domain/format";
+import { translate } from "../../i18n";
 
 const { preferences } = useAuth();
 const { visibleStrategies } = useContentSettings();
@@ -55,39 +56,45 @@ const strikes = optionChain.map((row) => row.strike);
 const strategyCategoryDefinitions = [
   {
     id: "direction-spread",
-    label: "方向价差",
-    shortLabel: "方向",
-    tags: ["方向", "合成方向", "价差"],
+    labelKey: "strategy.direction",
+    shortKey: "strategy.directionShort",
+    templateIds: [
+      "long-call",
+      "long-put",
+      "risk-reversal",
+      "bull-call-spread",
+      "bear-put-spread",
+    ],
   },
   {
     id: "credit-spread",
-    label: "信用价差",
-    shortLabel: "信用",
-    tags: ["信用价差"],
+    labelKey: "strategy.credit",
+    shortKey: "strategy.creditShort",
+    templateIds: ["bull-put-spread", "bear-call-spread"],
   },
   {
     id: "volatility",
-    label: "波动率",
-    shortLabel: "波动",
-    tags: ["波动率", "卖方波动率"],
+    labelKey: "strategy.volatility",
+    shortKey: "strategy.volatilityShort",
+    templateIds: ["long-straddle", "short-straddle", "short-strangle"],
   },
   {
     id: "range",
-    label: "区间",
-    shortLabel: "区间",
-    tags: ["区间", "收敛", "偏卖方"],
+    labelKey: "strategy.range",
+    shortKey: "strategy.rangeShort",
+    templateIds: ["iron-condor", "iron-butterfly", "long-condor", "butterfly", "jade-lizard"],
   },
   {
     id: "ratio",
-    label: "比例",
-    shortLabel: "比例",
-    tags: ["比例"],
+    labelKey: "strategy.ratio",
+    shortKey: "strategy.ratioShort",
+    templateIds: ["call-ratio-spread"],
   },
 ] satisfies Array<{
   id: string;
-  label: string;
-  shortLabel: string;
-  tags: string[];
+  labelKey: string;
+  shortKey: string;
+  templateIds: string[];
 }>;
 
 onLoad((query) => {
@@ -106,14 +113,16 @@ const selectedTemplate = computed(
       (item) => item.id === selectedTemplateId.value,
     ) ??
     visibleStrategies.value[0] ??
-    strategyTemplates[0],
+    undefined,
 );
 const strategyCategories = computed(() =>
   strategyCategoryDefinitions
     .map((category) => ({
       ...category,
+      label: translate(category.labelKey),
+      shortLabel: translate(category.shortKey),
       strategies: visibleStrategies.value.filter((template) =>
-        category.tags.includes(template.tag),
+        category.templateIds.includes(template.id),
       ),
     }))
     .filter((category) => category.strategies.length > 0),
@@ -145,8 +154,7 @@ const toolbarStyle = computed(() => ({
       : "0px",
 }));
 const strategySummary = computed(
-  () =>
-    `覆盖方向、信用价差、波动率、区间与尾部风险，共 ${visibleStrategies.value.length} 个策略模板。`,
+  () => translate("strategy.summary", { count: visibleStrategies.value.length }),
 );
 const metrics = computed(() => calculateStrategyMetrics(legs.value));
 const scenarioRows = computed(() =>
@@ -225,16 +233,16 @@ function goSimulate() {
     <view class="page-canvas">
       <view class="page-content">
         <PageHeader
-          title="策略实验室"
-          eyebrow="Strategy lab"
+          :title="$t('strategy.title')"
+          :eyebrow="$t('strategy.eyebrow')"
           :subtitle="strategySummary"
         >
           <template #action>
             <view class="strategy-market-chip">
               <view class="strategy-market-chip__dot" />
               <view>
-                <text class="strategy-market-chip__name">{{ underlying.name }}</text>
-                <text class="strategy-market-chip__meta">{{ underlying.symbol }} · {{ DEMO_SNAPSHOT_LABEL }}</text>
+                <text class="strategy-market-chip__name">{{ underlyingDisplayName() }}</text>
+                <text class="strategy-market-chip__meta">{{ underlying.symbol }} · {{ demoSnapshotLabel() }}</text>
               </view>
             </view>
           </template>
@@ -242,7 +250,7 @@ function goSimulate() {
 
         <view class="strategy-toolbar" :style="toolbarStyle">
           <view class="strategy-picker-block">
-            <text class="strategy-picker-block__label">策略分类</text>
+            <text class="strategy-picker-block__label">{{ $t("strategy.category") }}</text>
             <view
               v-if="openCategoryId"
               class="strategy-menu-dismiss"
@@ -286,7 +294,7 @@ function goSimulate() {
                 >
                   <view class="strategy-category-menu__head">
                     <text>{{ category.label }}</text>
-                    <text>{{ category.strategies.length }} 个策略</text>
+                    <text>{{ $t("strategy.strategyCount", { count: category.strategies.length }) }}</text>
                   </view>
                   <button
                     v-for="template in category.strategies"
@@ -318,7 +326,7 @@ function goSimulate() {
             </view>
           </view>
           <view class="strategy-spot">
-            <text class="strategy-spot__label">标的现价</text>
+            <text class="strategy-spot__label">{{ $t("strategy.spotPrice") }}</text>
             <text class="strategy-spot__value mono">{{ underlying.spot.toFixed(3) }}</text>
             <text class="positive mono">{{ underlying.change >= 0 ? "+" : "" }}{{ underlying.change.toFixed(3) }}</text>
           </view>
@@ -333,9 +341,9 @@ function goSimulate() {
                   <view class="chart-panel__meta">
                     <text>{{ selectedTemplate?.risk }}</text>
                     <view class="chart-panel__dot" />
-                    <text>剩余 {{ elapsedDaysLabel() }} 天</text>
+                    <text>{{ $t("strategy.daysLeft", { days: elapsedDaysLabel() }) }}</text>
                     <view class="chart-panel__dot" />
-                    <text>{{ DEMO_EXPIRY_LABEL }} 到期</text>
+                    <text>{{ $t("strategy.expiresOn", { date: demoExpiryLabel() }) }}</text>
                   </view>
                 </view>
                 <view class="segmented">
@@ -344,14 +352,14 @@ function goSimulate() {
                     :class="{ 'segmented__item--active': activeTab === 'chart' }"
                     @tap="activeTab = 'chart'"
                   >
-                    损益图
+                    {{ $t("strategy.payoff") }}
                   </button>
                   <button
                     class="segmented__item"
                     :class="{ 'segmented__item--active': activeTab === 'scenario' }"
                     @tap="activeTab = 'scenario'"
                   >
-                    情景
+                    {{ $t("strategy.scenario") }}
                   </button>
                 </view>
               </view>
@@ -360,15 +368,15 @@ function goSimulate() {
                 <view class="chart-legend">
                   <view class="chart-legend__item">
                     <view class="chart-legend__line chart-legend__line--solid" />
-                    <text>到期损益</text>
+                    <text>{{ $t("strategy.expiryPnl") }}</text>
                   </view>
                   <view class="chart-legend__item">
                     <view class="chart-legend__line chart-legend__line--dashed" />
-                    <text>当前理论价值</text>
+                    <text>{{ $t("strategy.currentValue") }}</text>
                   </view>
                   <view class="chart-legend__item">
                     <view class="chart-legend__line chart-legend__line--spot" />
-                    <text>现价</text>
+                    <text>{{ $t("strategy.spot") }}</text>
                   </view>
                 </view>
                 <PayoffChart
@@ -381,12 +389,12 @@ function goSimulate() {
 
               <view v-else class="scenario-panel">
                 <view class="scenario-panel__intro">
-                  <text>价格变化 × 隐含波动率变化</text>
-                  <text>估算当前理论损益，不含手续费</text>
+                  <text>{{ $t("strategy.scenarioIntro") }}</text>
+                  <text>{{ $t("strategy.scenarioHint") }}</text>
                 </view>
                 <view class="scenario-table">
                   <view class="scenario-table__head">
-                    <text>标的价格</text>
+                    <text>{{ $t("strategy.spotPrice") }}</text>
                     <text v-for="shock in ivShocks" :key="shock">
                       IV {{ shock > 0 ? "+" : "" }}{{ Math.round(shock * 100) }}pt
                     </text>
@@ -412,33 +420,33 @@ function goSimulate() {
                 </view>
                 <view class="scenario-panel__note">
                   <AppIcon name="info" :size="14" color="#7b8783" />
-                  <text>情景分析是局部估算，实际价格还受流动性、利率和波动率曲面影响。</text>
+                  <text>{{ $t("strategy.scenarioNote") }}</text>
                 </view>
               </view>
 
               <view class="chart-metrics">
                 <view class="chart-metric">
-                  <text class="chart-metric__label">最大收益</text>
+                  <text class="chart-metric__label">{{ $t("home.maxProfit") }}</text>
                   <text class="chart-metric__value mono positive">
-                    {{ metricMoney(metrics.maxProfit, "无上限") }}
+                    {{ metricMoney(metrics.maxProfit, $t("home.unlimited")) }}
                   </text>
                 </view>
                 <view class="chart-metric">
-                  <text class="chart-metric__label">最大亏损</text>
+                  <text class="chart-metric__label">{{ $t("home.maxLoss") }}</text>
                   <text class="chart-metric__value mono negative">
-                    {{ metricMoney(metrics.maxLoss, "风险很大") }}
+                    {{ metricMoney(metrics.maxLoss, $t("home.highRisk")) }}
                   </text>
                 </view>
                 <view class="chart-metric">
-                  <text class="chart-metric__label">盈亏平衡</text>
+                  <text class="chart-metric__label">{{ $t("home.breakeven") }}</text>
                   <text class="chart-metric__value mono">
                     {{ metrics.breakevens.length ? metrics.breakevens.map((item) => item.toFixed(3)).join(" / ") : "—" }}
                   </text>
                 </view>
                 <view class="chart-metric">
-                  <text class="chart-metric__label">净权利金</text>
+                  <text class="chart-metric__label">{{ $t("home.netPremium") }}</text>
                   <text class="chart-metric__value mono">
-                    {{ metrics.netPremium > 0 ? "支出 " : "收入 " }}{{ formatMoney(Math.abs(metrics.netPremium), 0) }}
+                    {{ metrics.netPremium > 0 ? $t("strategy.debit") : $t("strategy.creditAmount") }} {{ formatMoney(Math.abs(metrics.netPremium), 0) }}
                   </text>
                 </view>
               </view>
@@ -447,20 +455,20 @@ function goSimulate() {
             <view class="legs-panel card">
               <view class="legs-panel__head">
                 <view>
-                  <text class="legs-panel__title">策略结构</text>
-                  <text class="legs-panel__meta">{{ legs.length }} 条腿 · 1 张合约 = {{ formatNumber(10000) }} 份 ETF</text>
+                  <text class="legs-panel__title">{{ $t("strategy.mechanics") }}</text>
+                  <text class="legs-panel__meta">{{ $t("strategy.legMeta", { legs: legs.length, shares: formatNumber(10000) }) }}</text>
                 </view>
                 <button class="button-quiet" @tap="resetLegs">
                   <AppIcon name="reset" :size="14" color="#0e6f5c" />
-                  <text>恢复模板</text>
+                  <text>{{ $t("strategy.resetLegs") }}</text>
                 </button>
               </view>
 
               <view class="leg-table__head">
-                <text>方向 / 合约</text>
-                <text>行权价</text>
-                <text>最新价</text>
-                <text>数量</text>
+                <text>{{ $t("strategy.sideContract") }}</text>
+                <text>{{ $t("common.strike") }}</text>
+                <text>{{ $t("common.latest") }}</text>
+                <text>{{ $t("common.quantity") }}</text>
               </view>
               <view v-for="leg in legs" :key="leg.uid" class="leg-row">
                 <view class="leg-contract">
@@ -468,13 +476,13 @@ function goSimulate() {
                     class="leg-side"
                     :class="leg.side === 'buy' ? 'leg-side--buy' : 'leg-side--sell'"
                   >
-                    {{ leg.side === "buy" ? "买" : "卖" }}
+                    {{ leg.side === "buy" ? $t("common.buy") : $t("common.sell") }}
                   </view>
                   <view class="leg-contract__copy">
                     <text class="leg-contract__name">
-                      {{ leg.type === "call" ? "认购" : "认沽" }} {{ optionLabel(leg.type, leg.strike) }}
+                      {{ leg.type === "call" ? $t("common.call") : $t("common.put") }} {{ optionLabel(leg.type, leg.strike) }}
                     </text>
-                    <text class="leg-contract__meta">IV {{ formatVol(leg.iv) }} · {{ DEMO_EXPIRY_LABEL }}</text>
+                    <text class="leg-contract__meta">IV {{ formatVol(leg.iv) }} · {{ demoExpiryLabel() }}</text>
                   </view>
                 </view>
 
@@ -509,7 +517,7 @@ function goSimulate() {
                   <text>{{ selectedTemplate?.thesis }}</text>
                 </view>
                 <text class="legs-panel__margin">
-                  保证金估算：{{ formatMoney(0, 0) }} · 以券商为准
+                  {{ $t("strategy.marginEstimate", { value: formatMoney(0, 0) }) }}
                 </text>
               </view>
             </view>
@@ -518,28 +526,28 @@ function goSimulate() {
           <view class="strategy-aside">
             <view class="risk-panel card">
               <view class="risk-panel__head">
-                <text class="risk-panel__title">组合 Greeks</text>
+                <text class="risk-panel__title">{{ $t("strategy.greeksTitle") }}</text>
                 <view class="chip chip--blue">{{ selectedTemplate?.risk }}</view>
               </view>
               <view class="greek-list">
                 <view class="greek-row">
                   <view>
                     <text class="greek-row__name">Delta</text>
-                    <text class="greek-row__desc">方向敞口</text>
+                    <text class="greek-row__desc">{{ $t("strategy.deltaDesc") }}</text>
                   </view>
                   <text class="greek-row__value mono">{{ formatSignedNumber(metrics.netDelta) }}</text>
                 </view>
                 <view class="greek-row">
                   <view>
                     <text class="greek-row__name">Gamma</text>
-                    <text class="greek-row__desc">Delta 变化速度</text>
+                    <text class="greek-row__desc">{{ $t("strategy.gammaDesc") }}</text>
                   </view>
                   <text class="greek-row__value mono">{{ formatSignedNumber(metrics.netGamma, 1) }}</text>
                 </view>
                 <view class="greek-row">
                   <view>
                     <text class="greek-row__name">Theta</text>
-                    <text class="greek-row__desc">每日时间价值</text>
+                    <text class="greek-row__desc">{{ $t("strategy.thetaDesc") }}</text>
                   </view>
                   <text
                     class="greek-row__value mono"
@@ -551,51 +559,51 @@ function goSimulate() {
                 <view class="greek-row">
                   <view>
                     <text class="greek-row__name">Vega</text>
-                    <text class="greek-row__desc">每 1pt 波动率</text>
+                    <text class="greek-row__desc">{{ $t("strategy.vegaDesc") }}</text>
                   </view>
                   <text class="greek-row__value mono">{{ formatSignedNumber(metrics.netVega, 1) }}</text>
                 </view>
               </view>
               <view class="risk-panel__note">
                 <AppIcon name="info" :size="13" color="#7b8783" />
-                <text>Greeks 为示例快照，随行情与时间变化。</text>
+                <text>{{ $t("strategy.greeksNote") }}</text>
               </view>
             </view>
 
             <view class="structure-panel card">
-              <text class="structure-panel__title">执行检查</text>
+              <text class="structure-panel__title">{{ $t("strategy.executionCheck") }}</text>
               <view class="check-list">
                 <view class="check-item">
                   <AppIcon name="circleCheck" :size="16" color="#0e6f5c" />
-                  <text>先确认最大亏损</text>
+                  <text>{{ $t("strategy.checkMaxLoss") }}</text>
                 </view>
                 <view class="check-item">
                   <AppIcon name="circleCheck" :size="16" color="#0e6f5c" />
-                  <text>核对行权价和到期日</text>
+                  <text>{{ $t("strategy.checkStrikes") }}</text>
                 </view>
                 <view class="check-item">
                   <AppIcon name="circleDashed" :size="16" color="#95a09c" />
-                  <text>检查盘口与单腿成交风险</text>
+                  <text>{{ $t("strategy.checkLiquidity") }}</text>
                 </view>
               </view>
               <button class="button-primary button-primary--teal structure-panel__button" @tap="goSimulate">
                 <AppIcon name="activity" :size="16" color="#ffffff" />
-                <text>发送到模拟盘</text>
+                <text>{{ $t("strategy.sendToPaper") }}</text>
               </button>
               <text class="structure-panel__disclaimer">
-                初版模拟撮合不包含实盘盘口和真实保证金。
+                {{ $t("strategy.simulationDisclaimer") }}
               </text>
             </view>
 
             <view class="option-chain-card card">
               <view class="option-chain-card__head">
-                <text class="option-chain-card__title">期权链快照</text>
-                <text class="option-chain-card__meta">平值附近</text>
+                <text class="option-chain-card__title">{{ $t("strategy.optionChain") }}</text>
+                <text class="option-chain-card__meta">{{ $t("strategy.nearTheMoney") }}</text>
               </view>
               <view class="option-chain__head">
-                <text>认购</text>
-                <text>行权价</text>
-                <text>认沽</text>
+                <text>{{ $t("common.call") }}</text>
+                <text>{{ $t("common.strike") }}</text>
+                <text>{{ $t("common.put") }}</text>
               </view>
               <view
                 v-for="row in optionChain.slice(1, 4)"

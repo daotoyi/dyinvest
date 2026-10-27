@@ -11,6 +11,7 @@ import type {
 } from "../domain/types";
 import { round } from "../domain/optionMath";
 import { optionDisplayName } from "../data/options";
+import { translate } from "../i18n";
 import {
   pushUserDataset,
   registerDatasetHandler,
@@ -33,9 +34,11 @@ function createSeedState(): PaperAccountState {
   const initialOrder: PaperOrder = {
     id: "SIM-20261023-001",
     createdAt: "10/23 10:12",
-    title: `买入 ${optionDisplayName("call", 4.1)}`,
-    subtitle: "1 张 · 示例持仓",
-    status: "已成交",
+    title: translate("paper.buyContract", {
+      contract: optionDisplayName("call", 4.1),
+    }),
+    subtitle: translate("paper.samplePosition"),
+    status: translate("paper.filled"),
     cashFlow: -cost,
     quantity: 1,
   };
@@ -211,7 +214,7 @@ function updatePosition(
   let position = getPosition(quoteId);
   if (!position) {
     const quote = findQuoteById(quoteId);
-    if (!quote) throw new Error("未找到期权合约");
+    if (!quote) throw new Error(translate("paper.contractNotFound"));
     state.positions.push({
       key: quoteId,
       quoteId,
@@ -237,7 +240,7 @@ function updatePosition(
   }
 
   if (quantity > Math.abs(currentSigned) && !allowCross) {
-    throw new Error("单笔订单暂不支持反手穿越，请先平仓");
+    throw new Error(translate("paper.noReverse"));
   }
   const closedQty = Math.min(quantity, Math.abs(currentSigned));
   state.realizedPnl +=
@@ -251,7 +254,7 @@ function recordOrder(order: Omit<PaperOrder, "id" | "createdAt" | "status">) {
     ...order,
     id: `SIM-${Date.now()}-${state.orders.length + 1}`,
     createdAt: nowLabel(),
-    status: "已成交",
+    status: translate("paper.filled"),
   });
   state.orders = state.orders.slice(0, 30);
 }
@@ -269,7 +272,7 @@ function placeOrder(input: {
   price: number;
 }) {
   const quote = findQuote(input.type, input.strike);
-  if (!quote) throw new Error("未找到期权合约");
+  if (!quote) throw new Error(translate("paper.contractNotFound"));
   const quantity = Math.max(Math.floor(input.quantity), 1);
   const premium = Math.max(input.price, 0.0001);
   const gross = premium * CONTRACT_MULTIPLIER * quantity;
@@ -285,11 +288,11 @@ function placeOrder(input: {
     const additionalMargin =
       underlying.spot * CONTRACT_MULTIPLIER * MARGIN_RATE * quantity;
     if (availableCash.value < additionalMargin + fee) {
-      throw new Error("可用资金不足以覆盖模拟保证金");
+      throw new Error(translate("paper.insufficientMargin"));
     }
   }
   if (input.side === "buy" && !closing && state.cash < gross + fee) {
-    throw new Error("模拟账户可用现金不足");
+    throw new Error(translate("paper.insufficientCash"));
   }
 
   const cashFlow = -signed * gross - fee;
@@ -303,11 +306,14 @@ function placeOrder(input: {
     premium,
   );
   recordOrder({
-    title: `${input.side === "buy" ? "买入" : "卖出"} ${optionDisplayName(
-      input.type,
-      input.strike,
-    )}`,
-    subtitle: `${quantity} 张 · 限价 ${premium.toFixed(4)}`,
+    title: translate(
+      input.side === "buy" ? "paper.buyContract" : "paper.sellContract",
+      { contract: optionDisplayName(input.type, input.strike) },
+    ),
+    subtitle: translate("paper.limitOrder", {
+      qty: quantity,
+      price: premium.toFixed(4),
+    }),
     cashFlow,
     quantity,
   });
@@ -315,7 +321,7 @@ function placeOrder(input: {
 }
 
 function placeStrategy(legs: StrategyLeg[], strategyName: string) {
-  if (!legs.length) throw new Error("策略没有可执行腿");
+  if (!legs.length) throw new Error(translate("paper.noLegs"));
   let netCash = 0;
   let openingMargin = 0;
   const orderLegs: PaperOrderLeg[] = legs.map((leg) => {
@@ -339,7 +345,7 @@ function placeStrategy(legs: StrategyLeg[], strategyName: string) {
   netCash -= legs.length * FEE_PER_LEG;
   const requiredCash = Math.max(-netCash, 0) + openingMargin;
   if (availableCash.value < requiredCash) {
-    throw new Error("可用资金不足以覆盖组合权利金或模拟保证金");
+    throw new Error(translate("paper.insufficientCombo"));
   }
 
   for (const leg of legs) {
@@ -354,8 +360,8 @@ function placeStrategy(legs: StrategyLeg[], strategyName: string) {
   }
   state.cash += netCash;
   recordOrder({
-    title: `策略组合 · ${strategyName}`,
-    subtitle: `${legs.length} 条腿 · 演示组合成交`,
+    title: translate("paper.strategyCombo", { name: strategyName }),
+    subtitle: translate("paper.strategySubtitle", { legs: legs.length }),
     cashFlow: netCash,
     quantity: legs.reduce((total, leg) => total + leg.quantity, 0),
     legs: orderLegs,

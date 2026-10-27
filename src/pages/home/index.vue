@@ -4,10 +4,11 @@ import AppIcon from "../../components/AppIcon.vue";
 import AppShell from "../../components/AppShell.vue";
 import MiniLineChart from "../../components/MiniLineChart.vue";
 import {
-  DEMO_SNAPSHOT_LABEL,
+  demoSnapshotLabel,
   optionDisplayName,
   overviewQuotes,
   underlying,
+  underlyingDisplayName,
 } from "../../data/options";
 import {
   buildStrategyLegs,
@@ -90,8 +91,8 @@ function goLesson() {
         <view class="mobile-brand">
           <view class="mobile-brand__mark">θ</view>
           <view>
-            <text class="mobile-brand__name">道元期权</text>
-            <text class="mobile-brand__meta">DAO OPTIONS</text>
+            <text class="mobile-brand__name">{{ $t("app.name") }}</text>
+            <text class="mobile-brand__meta">{{ $t("app.meta") }}</text>
           </view>
           <button class="icon-button mobile-brand__bell" @tap="go('/pages/profile/index')">
             <AppIcon name="bell" :size="18" />
@@ -109,24 +110,24 @@ function goLesson() {
             <text class="home-announcement__title">{{ contentState.announcement.title }}</text>
             <text class="home-announcement__text">{{ contentState.announcement.text }}</text>
           </view>
-          <text class="home-announcement__meta">运营公告</text>
+          <text class="home-announcement__meta">{{ $t("home.notice") }}</text>
         </view>
 
         <view class="home-intro">
           <view class="home-intro__copy">
             <view class="home-intro__meta">
-              <text class="eyebrow">学习与模拟</text>
+              <text class="eyebrow">{{ $t("home.learnSimulate") }}</text>
               <view class="home-intro__dot" />
-              <text class="home-intro__date">{{ DEMO_SNAPSHOT_LABEL }}</text>
+              <text class="home-intro__date">{{ demoSnapshotLabel() }}</text>
             </view>
-            <text class="home-intro__title">把每次判断，写进损益图。</text>
+            <text class="home-intro__title">{{ $t("home.heroTitle") }}</text>
             <text class="home-intro__subtitle">
-              先理解风险结构，再用模拟账户验证策略。
+              {{ $t("home.heroSubtitle") }}
             </text>
           </view>
           <view class="home-intro__status">
             <view class="status-dot" />
-            <text>模拟环境</text>
+            <text>{{ $t("app.demoEnvironment") }}</text>
           </view>
         </view>
 
@@ -134,18 +135,18 @@ function goLesson() {
           <view class="account-panel">
             <view class="account-panel__head">
               <view>
-                <text class="account-panel__label">模拟账户权益</text>
+                <text class="account-panel__label">{{ $t("home.paperEquity") }}</text>
                 <text class="account-panel__value mono">{{ formatMoney(totalEquity) }}</text>
               </view>
               <view class="account-panel__badge">
                 <AppIcon name="activity" :size="14" color="#b9e5d8" />
-                <text>本地模拟</text>
+                <text>{{ $t("home.paperBadge") }}</text>
               </view>
             </view>
 
             <view class="account-panel__stats">
               <view class="account-stat">
-                <text class="account-stat__label">今日</text>
+                <text class="account-stat__label">{{ $t("common.today") }}</text>
                 <text
                   class="account-stat__value mono"
                   :class="dayChange >= 0 ? 'account-stat__value--up' : 'account-stat__value--down'"
@@ -154,7 +155,7 @@ function goLesson() {
                 </text>
               </view>
               <view class="account-stat">
-                <text class="account-stat__label">累计收益</text>
+                <text class="account-stat__label">{{ $t("common.totalReturn") }}</text>
                 <text
                   class="account-stat__value mono"
                   :class="totalReturn >= 0 ? 'account-stat__value--up' : 'account-stat__value--down'"
@@ -163,7 +164,7 @@ function goLesson() {
                 </text>
               </view>
               <view class="account-stat">
-                <text class="account-stat__label">可用资金</text>
+                <text class="account-stat__label">{{ $t("common.availableCash") }}</text>
                 <text class="account-stat__value mono">{{ formatMoney(availableCash, 0) }}</text>
               </view>
             </view>
@@ -178,10 +179,10 @@ function goLesson() {
             </view>
 
             <view class="account-panel__foot">
-              <text>{{ activePositions.length }} 个持仓</text>
-              <text>未实现 {{ formatSignedMoney(unrealizedPnl) }}</text>
+              <text>{{ $t("home.positions", { count: activePositions.length }) }}</text>
+              <text>{{ $t("common.unrealized") }} {{ formatSignedMoney(unrealizedPnl) }}</text>
               <button class="account-panel__link" @tap="go('/pages/practice/index')">
-                <text>查看账户</text>
+                <text>{{ $t("home.viewAccount") }}</text>
                 <AppIcon name="arrowRight" :size="14" color="#b9e5d8" />
               </button>
             </view>
@@ -193,9 +194,9 @@ function goLesson() {
                 <AppIcon name="bookOpenCheck" :size="20" color="#0e6f5c" />
               </view>
               <view>
-                <text class="eyebrow">继续学习</text>
+                <text class="eyebrow">{{ $t("home.continueLearning") }}</text>
                 <text class="continue-panel__step">
-                  {{ completedCount }} / {{ visibleLessons.length }} 课
+                  {{ $t("home.lessonCount", { completed: completedCount, total: visibleLessons.length }) }}
                 </text>
               </view>
             </view>
@@ -222,7 +223,7 @@ function goLesson() {
                 :size="16"
                 color="#ffffff"
               />
-              <text>{{ completedCount === 0 ? "开始第一课" : "继续课程" }}</text>
+              <text>{{ completedCount === 0 ? $t("home.startFirst") : $t("home.continueCourse") }}</text>
             </button>
           </view>
         </view>
@@ -231,11 +232,11 @@ function goLesson() {
           <view class="strategy-preview card">
             <view class="section-heading">
               <view class="section-heading__copy">
-                <text class="section-heading__title">策略实验室</text>
-                <text class="section-heading__meta">当前示例 · {{ previewStrategy?.name }}</text>
+                <text class="section-heading__title">{{ $t("home.strategyLab") }}</text>
+                <text class="section-heading__meta">{{ $t("home.currentExample", { name: previewStrategy?.name }) }}</text>
               </view>
               <button class="button-quiet" @tap="go('/pages/strategy/index')">
-                <text>打开</text>
+                <text>{{ $t("common.open") }}</text>
                 <AppIcon name="chevronRight" :size="15" color="#0e6f5c" />
               </button>
             </view>
@@ -252,19 +253,19 @@ function goLesson() {
               </view>
               <view class="strategy-preview__stats">
                 <view class="mini-stat">
-                  <text class="mini-stat__label">最大收益</text>
+                  <text class="mini-stat__label">{{ $t("home.maxProfit") }}</text>
                   <text class="mini-stat__value mono positive">
-                    {{ Number.isFinite(bullSpread.metrics.maxProfit) ? formatMoney(bullSpread.metrics.maxProfit, 0) : "无上限" }}
+                    {{ Number.isFinite(bullSpread.metrics.maxProfit) ? formatMoney(bullSpread.metrics.maxProfit, 0) : $t("home.unlimited") }}
                   </text>
                 </view>
                 <view class="mini-stat">
-                  <text class="mini-stat__label">最大亏损</text>
+                  <text class="mini-stat__label">{{ $t("home.maxLoss") }}</text>
                   <text class="mini-stat__value mono negative">
-                    {{ Number.isFinite(bullSpread.metrics.maxLoss) ? formatMoney(bullSpread.metrics.maxLoss, 0) : "风险很大" }}
+                    {{ Number.isFinite(bullSpread.metrics.maxLoss) ? formatMoney(bullSpread.metrics.maxLoss, 0) : $t("home.highRisk") }}
                   </text>
                 </view>
                 <view class="mini-stat">
-                  <text class="mini-stat__label">净权利金</text>
+                  <text class="mini-stat__label">{{ $t("home.netPremium") }}</text>
                   <text class="mini-stat__value mono">{{ formatMoney(bullSpread.metrics.netPremium, 0) }}</text>
                 </view>
               </view>
@@ -274,8 +275,8 @@ function goLesson() {
           <view class="market-card card">
             <view class="section-heading market-card__heading">
               <view class="section-heading__copy">
-                <text class="section-heading__title">300ETF 期权</text>
-                <text class="section-heading__meta">{{ DEMO_SNAPSHOT_LABEL }}</text>
+                <text class="section-heading__title">{{ underlyingDisplayName() }}</text>
+                <text class="section-heading__meta">{{ demoSnapshotLabel() }}</text>
               </view>
               <view class="market-card__price">
                 <text class="mono">{{ underlying.spot.toFixed(3) }}</text>
@@ -284,9 +285,9 @@ function goLesson() {
             </view>
 
             <view class="market-table__head">
-              <text>合约</text>
-              <text>最新</text>
-              <text>涨跌</text>
+              <text>{{ $t("common.contract") }}</text>
+              <text>{{ $t("common.latest") }}</text>
+              <text>{{ $t("home.change") }}</text>
             </view>
             <view
               v-for="quote in overviewQuotes"
@@ -312,10 +313,10 @@ function goLesson() {
             <view class="market-card__foot">
               <view class="market-card__source">
                 <AppIcon name="info" :size="13" color="#7b8783" />
-                <text>演示数据，不构成投资建议</text>
+                <text>{{ $t("home.demoDisclaimer") }}</text>
               </view>
               <button class="button-quiet" @tap="go('/pages/strategy/index')">
-                <text>看期权链</text>
+                <text>{{ $t("home.viewChain") }}</text>
                 <AppIcon name="chevronRight" :size="14" color="#0e6f5c" />
               </button>
             </view>
@@ -325,8 +326,8 @@ function goLesson() {
         <view class="quick-section">
           <view class="section-heading">
             <view class="section-heading__copy">
-              <text class="section-heading__title">快速开始</text>
-              <text class="section-heading__meta">学习、构建、验证</text>
+              <text class="section-heading__title">{{ $t("home.quickStart") }}</text>
+              <text class="section-heading__meta">{{ $t("home.quickSubtitle") }}</text>
             </view>
           </view>
           <view class="quick-grid">
@@ -335,8 +336,8 @@ function goLesson() {
                 <AppIcon name="graduation" :size="22" color="#0e6f5c" />
               </view>
               <view class="quick-action__copy">
-                <text class="quick-action__title">系统学习</text>
-                <text class="quick-action__desc">从合约要素到组合风险</text>
+                <text class="quick-action__title">{{ $t("home.quickLearnTitle") }}</text>
+                <text class="quick-action__desc">{{ $t("home.quickLearnCopy") }}</text>
               </view>
               <AppIcon name="arrowUpRight" :size="18" color="#6d7a76" />
             </button>
@@ -345,8 +346,8 @@ function goLesson() {
                 <AppIcon name="chart" :size="22" color="#436d93" />
               </view>
               <view class="quick-action__copy">
-                <text class="quick-action__title">构建策略</text>
-                <text class="quick-action__desc">调整行权价与数量</text>
+                <text class="quick-action__title">{{ $t("home.quickStrategyTitle") }}</text>
+                <text class="quick-action__desc">{{ $t("home.quickStrategyCopy") }}</text>
               </view>
               <AppIcon name="arrowUpRight" :size="18" color="#6d7a76" />
             </button>
@@ -355,8 +356,8 @@ function goLesson() {
                 <AppIcon name="activity" :size="22" color="#c78b25" />
               </view>
               <view class="quick-action__copy">
-                <text class="quick-action__title">模拟验证</text>
-                <text class="quick-action__desc">查看持仓与收益归因</text>
+                <text class="quick-action__title">{{ $t("home.quickPracticeTitle") }}</text>
+                <text class="quick-action__desc">{{ $t("home.quickPracticeCopy") }}</text>
               </view>
               <AppIcon name="arrowUpRight" :size="18" color="#6d7a76" />
             </button>

@@ -7,6 +7,8 @@ import {
   underlying,
 } from "./options";
 import { blackScholesPrice } from "../domain/optionMath";
+import { computed } from "vue";
+import { getAppLocale } from "../i18n";
 import type {
   PayoffPoint,
   ScenarioCell,
@@ -211,6 +213,147 @@ export const strategyTemplates: StrategyTemplate[] = [
     ],
   },
 ];
+
+interface StrategyEnglish {
+  name: string;
+  shortName: string;
+  thesis: string;
+  risk: string;
+  tag: string;
+}
+
+const strategyEnglish: Record<string, StrategyEnglish> = {
+  "long-call": {
+    name: "Buy Call",
+    shortName: "Buy call",
+    thesis: "Bullish view; use limited premium for upside exposure.",
+    risk: "Limited risk",
+    tag: "Directional",
+  },
+  "long-put": {
+    name: "Buy Put",
+    shortName: "Buy put",
+    thesis: "Bearish view; use limited premium for downside exposure.",
+    risk: "Limited risk",
+    tag: "Directional",
+  },
+  "bull-call-spread": {
+    name: "Bull Call Spread",
+    shortName: "Bull call spread",
+    thesis: "Moderately bullish; sell a higher-strike call to lower premium cost.",
+    risk: "Defined risk",
+    tag: "Spread",
+  },
+  "bear-put-spread": {
+    name: "Bear Put Spread",
+    shortName: "Bear put spread",
+    thesis: "Moderately bearish; buy a higher-strike put and sell a lower-strike put.",
+    risk: "Defined risk",
+    tag: "Spread",
+  },
+  "bull-put-spread": {
+    name: "Bull Put Spread",
+    shortName: "Sell put spread",
+    thesis: "Expect support to hold; sell a higher-strike put to collect premium.",
+    risk: "Defined risk",
+    tag: "Credit spread",
+  },
+  "bear-call-spread": {
+    name: "Bear Call Spread",
+    shortName: "Sell call spread",
+    thesis: "Expect resistance to hold; sell a lower-strike call to collect premium.",
+    risk: "Defined risk",
+    tag: "Credit spread",
+  },
+  "risk-reversal": {
+    name: "Risk Reversal",
+    shortName: "Risk reversal",
+    thesis: "Buy a call for upside and sell a put to offset net cost.",
+    risk: "High risk",
+    tag: "Synthetic",
+  },
+  "long-straddle": {
+    name: "Long Straddle",
+    shortName: "Long straddle",
+    thesis: "Expect volatility to expand without a directional view; time decay is the main headwind.",
+    risk: "Limited risk",
+    tag: "Volatility",
+  },
+  "short-straddle": {
+    name: "Short Straddle",
+    shortName: "Short straddle",
+    thesis: "Expect a narrow range; sell same-strike call and put to collect time value.",
+    risk: "High risk",
+    tag: "Short volatility",
+  },
+  "short-strangle": {
+    name: "Short Strangle",
+    shortName: "Short strangle",
+    thesis: "Expect a wide range; sell out-of-the-money call and put.",
+    risk: "High risk",
+    tag: "Short volatility",
+  },
+  "iron-condor": {
+    name: "Iron Condor",
+    shortName: "Iron condor",
+    thesis: "Expect range-bound movement; collect time value with defined risk.",
+    risk: "Defined risk",
+    tag: "Range",
+  },
+  "iron-butterfly": {
+    name: "Iron Butterfly",
+    shortName: "Iron butterfly",
+    thesis: "Bet expiry stays near the middle strike while limiting risk with wing buys.",
+    risk: "Defined risk",
+    tag: "Range",
+  },
+  "long-condor": {
+    name: "Long Condor",
+    shortName: "Long condor",
+    thesis: "Pay limited net premium to bet expiry lands in a wide middle range.",
+    risk: "Limited risk",
+    tag: "Range",
+  },
+  butterfly: {
+    name: "Call Butterfly",
+    shortName: "Butterfly",
+    thesis: "Bet expiry stays near the middle strike with low volatility and direction exposure.",
+    risk: "Defined risk",
+    tag: "Convergence",
+  },
+  "jade-lizard": {
+    name: "Jade Lizard",
+    shortName: "Jade lizard",
+    thesis: "Collect premium with a short put and call credit spread; bet against a large move.",
+    risk: "Defined risk",
+    tag: "Short bias",
+  },
+  "call-ratio-spread": {
+    name: "Call Ratio Spread",
+    shortName: "Ratio spread",
+    thesis: "Moderately bullish; sell more higher-strike calls, trading tail risk for net premium.",
+    risk: "High risk",
+    tag: "Ratio",
+  },
+};
+
+function localizedTemplate(template: StrategyTemplate): StrategyTemplate {
+  if (getAppLocale() !== "en") return template;
+  const english = strategyEnglish[template.id];
+  if (!english) return template;
+  return {
+    ...template,
+    name: english.name,
+    shortName: english.shortName,
+    thesis: english.thesis,
+    risk: english.risk,
+    tag: english.tag,
+  };
+}
+
+export const localizedStrategyTemplates = computed<StrategyTemplate[]>(() =>
+  strategyTemplates.map(localizedTemplate),
+);
 
 export function buildStrategyLegs(templateId = "bull-call-spread") {
   const template =
