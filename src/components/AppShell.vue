@@ -148,22 +148,6 @@ function switchLocale(next: "en" | "zh-CN") {
       </button>
     </view>
 
-    <view v-if="!secondary" class="mobile-lang">
-      <button
-        class="mobile-lang__item"
-        :class="{ 'mobile-lang__item--active': locale === 'en' }"
-        @tap="switchLocale('en')"
-      >
-        EN
-      </button>
-      <button
-        class="mobile-lang__item"
-        :class="{ 'mobile-lang__item--active': locale === 'zh-CN' }"
-        @tap="switchLocale('zh-CN')"
-      >
-        中文
-      </button>
-    </view>
   </view>
 </template>
 
@@ -346,36 +330,6 @@ function switchLocale(next: "en" | "zh-CN") {
   display: none;
 }
 
-.mobile-lang {
-  display: none;
-  position: fixed;
-  z-index: 60;
-  bottom: calc(76px + env(safe-area-inset-bottom));
-  right: 12px;
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 2px 8px rgba(20, 40, 35, 0.08);
-  backdrop-filter: blur(10px);
-}
-
-.mobile-lang__item {
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.mobile-lang__item--active {
-  background: var(--teal-wash);
-  color: var(--teal);
-}
-
 @media (max-width: 900px) {
   .desktop-rail {
     display: none;
@@ -399,10 +353,6 @@ function switchLocale(next: "en" | "zh-CN") {
     border-top: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(14px);
-  }
-
-  .mobile-lang {
-    display: flex;
   }
 
   .mobile-nav__item {
