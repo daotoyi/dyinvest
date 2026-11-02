@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLOUD_ENV="zhenhesheng-d6gkez7p221305432"
 WEB_TARGET="${WEB_DEPLOY_TARGET:-root@49.232.35.145}"
-WEB_DIR="${WEB_DEPLOY_DIR:-/www/wwwroot/dyinvest.cn}"
-WEB_URL="${WEB_DEPLOY_URL:-https://dyinvest.cn}"
+WEB_DIR="${WEB_DEPLOY_DIR:-/www/wwwroot/options.dyinvest.cn}"
+WEB_URL="${WEB_DEPLOY_URL:-http://options.dyinvest.cn}"
 VERSION="$(node -p "require('${ROOT_DIR}/package.json').version")"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
@@ -38,10 +38,10 @@ npm run build:h5
 cp dist/build/h5/index.html dist/build/h5/404.html
 
 ssh "$WEB_TARGET" \
-  "mkdir -p /www/backup/dyinvest.cn-$STAMP && tar -C '$WEB_DIR' -czf /www/backup/dyinvest.cn-$STAMP/site.tar.gz ."
-rsync -az dist/build/h5/ "$WEB_TARGET:$WEB_DIR/"
+  "mkdir -p /www/backup/options.dyinvest.cn-$STAMP && tar -C '$WEB_DIR' -czf /www/backup/options.dyinvest.cn-$STAMP/site.tar.gz ."
+rsync -az --delete --exclude '.well-known/' dist/build/h5/ "$WEB_TARGET:$WEB_DIR/"
 ssh "$WEB_TARGET" \
-  "chown -R www:www '$WEB_DIR/assets' '$WEB_DIR/static' && find '$WEB_DIR/assets' '$WEB_DIR/static' -type d -exec chmod 755 {} + && find '$WEB_DIR/assets' '$WEB_DIR/static' -type f -exec chmod 644 {} + && chmod 644 '$WEB_DIR/index.html' '$WEB_DIR/404.html' && nginx -t && nginx -s reload"
+  "chown -R www:www '$WEB_DIR' && find '$WEB_DIR' -type d -exec chmod 755 {} + && find '$WEB_DIR' -type f -exec chmod 644 {} + && nginx -t && nginx -s reload"
 
 curl -fsS --max-time 15 "$WEB_URL" >/dev/null
 /Applications/wechatwebdevtools.app/Contents/MacOS/cli cloud functions info \
@@ -53,5 +53,5 @@ curl -fsS --max-time 15 "$WEB_URL" >/dev/null
 printf '\n同步发布完成\n'
 printf '云环境：%s\n' "$CLOUD_ENV"
 printf '网站：%s\n' "$WEB_URL"
-printf '网站备份：/www/backup/dyinvest.cn-%s\n' "$STAMP"
+printf '网站备份：/www/backup/options.dyinvest.cn-%s\n' "$STAMP"
 printf '版本号：v%s\n' "$VERSION"
